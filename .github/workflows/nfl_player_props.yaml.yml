@@ -11,6 +11,7 @@ on:
     - cron: '0 10 * * 6'
     - cron: '0 20 * * 6'
     - cron: '0 10 * * 0'
+    - cron: '45 8 * * 3'
 
 jobs:
   import-data:
