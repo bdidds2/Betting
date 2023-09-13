@@ -604,9 +604,9 @@ final_fp <- try({final_df %>%
                 height= 20)
 }, silent = TRUE)
 
-ifelse(ciely_update == nfl_week_int & class(values_gt) != "try-error",
+ifelse(ciely_week == nfl_week_int & class(values_gt) != "try-error",
        gtsave(values_gt, expand = 100, filename = "NFL_PlayerProp_Values.png", vheight = 100, vwidth =1000),
-       ifelse(ciely_update != nfl_week_int & class(final_fp) != "try-error",
+       ifelse(ciely_week != nfl_week_int & class(final_fp) != "try-error",
        gtsave(final_fp, expand = 100, filename = "NFL_PlayerProp_Values.png", vheight = 100, vwidth =1000), NA))
 
 
@@ -807,9 +807,9 @@ thursday_all <- try({final_df %>%
 
 
 ifelse(wday(Sys.Date()) > 5, NA,
-       ifelse(ciely_update == nfl_week_int & class(thursday_all) != "try-error",
+       ifelse(ciely_week == nfl_week_int & class(thursday_all) != "try-error",
               gtsave(thursday_all, expand = 100, filename = "TNF_PlayerProps.png", vheight = 100, vwidth =1000),
-              ifelse(ciely_update != nfl_week_int & class(thursday_fp) != "try-error",
+              ifelse(ciely_week != nfl_week_int & class(thursday_fp) != "try-error",
                      gtsave(thursday_fp, expand = 100, filename = "TNF_PlayerProps.png", vheight = 100, vwidth =1000), NA)))
 
 #dk_logo <- "https://www.crossingbroad.com/wp-content/uploads/2022/08/DraftKings-App-Icon.png"
