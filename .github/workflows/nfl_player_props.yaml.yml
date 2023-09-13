@@ -40,7 +40,7 @@ jobs:
             any::webshot2
             any::png
             any::jsonlite
-            any:httr
+            any::httr
             any::janitor
             any::gsheet
             any::openxlsx
