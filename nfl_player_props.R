@@ -1,22 +1,22 @@
+library(dplyr)
+library(tidyr)
+library(rvest)
+library(nflreadr)
 library(httr)
 library(jsonlite)
-library(tidyr)
-library(xml2)
-library(dplyr)
+library(lubridate)
+library(janitor)
+library(stringr)
+library(openxlsx)
 library(gt)
+library(gtExtras)
+library(nflfastR)
 library(png)
 library(webshot2)
-library(lubridate)
-library(stringr)
-library(janitor)
-library(gsheet)
-library(openxlsx)
-library(purrr)
-library(nflfastR)
-library(nflplotR)
-library(nflreadr)
-library(rvest)
-
+#library(xml2)
+#library(gsheet)
+#library(purrr)
+#library(nflplotR)
 
 # team table --------------------------------------------------------------
 
@@ -66,6 +66,7 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
 
 # player headshots --------------------------------------------------------
 
+options(nflreadr.verbose = FALSE)
 headshots <- load_rosters(2023) %>%
   select(full_name, headshot_url) %>%
   mutate(full_name = case_when(full_name == "A.J. Brown" ~ "AJ Brown",
@@ -121,7 +122,12 @@ content <- fromJSON(content(response, "text")) %>%
                           TRUE ~ "Unknown"),
          week_filter = ifelse(commence_time <= as.Date(week_filter_date) & commence_time > week_filter_date1, 1, 0))
 
-game_df <- as.data.frame(unique(content %>% filter(week_filter == 1, commence_time > Sys.Date()) %>% select(id)))
+all_game_df <- as.data.frame(unique(content %>% filter(week_filter == 1, commence_time > Sys.Date()) %>% select(id)))
+tnf_game_df <- as.data.frame(unique(content %>% filter(week_filter == 1, commence_time > Sys.Date(), weekdays(commence_time) == "Thursday") %>% select(id)))
+
+game_df1 <- ifelse(wday(Sys.Date(), week_start = 1) >= 4, all_game_df, tnf_game_df)
+game_df <-  as.data.frame(unlist(game_df1)) %>% setNames("id")
+
 
 prop_markets <- "player_pass_tds,player_pass_yds,player_pass_completions,player_pass_attempts,player_pass_interceptions,player_rush_attempts,player_rush_yds,player_receptions,player_reception_yds,player_anytime_td"
 prop_endpoint <- paste0("/v4/sports/", sport,  "/events/", game_df$id[1], "/odds?apiKey=", api, "&regions=us&markets=", prop_markets,"&bookmakers=draftkings,fanduel&oddsFormat=american")
@@ -478,7 +484,7 @@ values_gt <- try({final_df %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_row_groups()) %>%
   cols_align(align = "center", columns = !player) %>%
-  tab_header(nfl_week) %>%
+  tab_header(paste0(nfl_week, " | Values")) %>%
   tab_style(style = cell_borders(sides = "left"),
             locations = cells_body(columns = "proj_ciely")) %>%
   tab_style(style = cell_borders(sides = "left", style = "dotted"),
@@ -579,7 +585,7 @@ thursday_fp <- try({final_df %>%
   tab_style(style = cell_text(weight = "bold"),
            locations = cells_row_groups()) %>%
   cols_align(align = "center", columns = !player) %>%
-  tab_header(nfl_week) %>%
+  tab_header(paste0(nfl_week, "| Thursday Night Football")) %>%
 #  tab_style(style = cell_borders(sides = "left"),
  #           locations = cells_body(columns = "proj_ciely")) %>%
   tab_style(style = cell_borders(sides = "left", style = "dotted"),
