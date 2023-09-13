@@ -15,6 +15,7 @@ library(purrr)
 library(nflfastR)
 library(nflplotR)
 library(nflreadr)
+library(rvest)
 
 
 # team table --------------------------------------------------------------
