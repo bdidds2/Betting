@@ -212,11 +212,13 @@ props_odds <- new_df %>%
          game_time = paste(weekdays(commence_time), format(commence_time, "%I:%M%p")),
          game_time = gsub(" 0", " ", game_time),
          outcome = ifelse(outcome == "yes", "over", outcome),
-         point = ifelse(play == "to_score", .5, point))
+         point = ifelse(play == "to_score", .5, point),
+         distribution = ifelse(play %in% c("patd", "paint", "rec"), "poisson", ifelse(play == "to_score", "easy", "normal")))
+         #proj_dk = ifelse(distribution == "easy", prob, NA))
 
 nfl_week_raw <- unique(content %>% filter(week_filter == 1) %>% select(week)) %>% pull()
 nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
-
+nfl_week_int <- nfl_week %>% gsub("[^0-9]", "", .) %>% as.integer()
 
 # fantasypros prop projections ------------------------------------------------------------
 
@@ -313,6 +315,8 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
 
 ciely_url <- "https://cdn.theathletic.com/app/uploads/2023/09/09111710/FFB_WK1_saturday.xlsx"
 
+ciely_week <- str_match(ciely_url, "WK\\d+")[1, 1] %>% gsub("[^0-9]", "", .) %>% as.integer()
+
 ciely_qb <- read.xlsx(ciely_url, sheet = "QB") %>%
   clean_names() %>%
   select(-c(rk, fps)) %>%
@@ -360,6 +364,11 @@ ciely_props <- bind_rows(ciely_qb, ciely_rb, ciely_wr, ciely_te) %>%
   pivot_longer(cols = c(payd, paint, ruat, ruyd, patd, rec, reyd, to_score), names_to = "play", values_to = "point")
 
 
+# fantasy life projections ------------------------------------------------
+
+#sharks_url <- "https://www.fantasysharks.com/apps/bert/forecasts/projections.php?csv=1&Sort=&Segment=788&Position=97&scoring=2&League=&uid=4&uid2=&printable="
+
+
 # final -------------------------------------------------------------------
 
 final_df <- props_odds %>%
@@ -375,7 +384,6 @@ final_df <- props_odds %>%
          diff_fd_ciely = ifelse(!is.na(proj_ciely) & !is.na(point_fd_over) & is.numeric(point_fd_over), proj_ciely - point_fd_over, NA),
          diff_dk_fp = ifelse(!is.na(proj_fp) & !is.na(point_dk_over), proj_fp - point_dk_over, NA),
          diff_fd_fp = ifelse(!is.na(proj_fp) & !is.na(point_fd_over), proj_fp - point_fd_over, NA),
-         distribution = ifelse(play %in% c("patd", "paint", "to_score"), "poisson", "normal"),
          value_dk_ciely = case_when(play %in% c("payd", "reyd", "ruyd") & abs(diff_dk_ciely) > 20 ~ 1,
                                     play %in% c("paco", "paat", "rec", "ruat") & abs(diff_dk_ciely) > 1.5 ~ 1,
                                     TRUE ~ 0),
@@ -469,7 +477,8 @@ values_gt <- try({final_df %>%
              diff_fd_ciely ~ "FD Δ",
              proj_fp ~ "Proj.",
              diff_dk_fp ~ "DK Δ",
-             diff_fd_fp ~ "FD Δ") %>%
+             diff_fd_fp ~ "FD Δ",
+             headshot_url ~ "") %>%
   data_color(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_fd_fp),
              rows = (play %in% c("Pass Atts", "Pass Comps", "Receptions", "Rush Atts")),
              palette = c("green", "white", "white", "green"),
@@ -500,6 +509,106 @@ ifelse(class(values_gt) == "try-error", NA,
    gtsave(values_gt, expand = 100,
        filename = "NFL_PlayerProp_Values.png",
        vheight = 100, vwidth =1000))
+
+final_fp <- try({final_df %>%
+    filter(value == 1) %>%
+    left_join(., headshots, by = join_by("player" == "full_name")) %>%
+    select(c(play, headshot_url, player, player_team, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under, proj_fp, diff_dk_fp, diff_fd_fp)) %>%
+    mutate(play = case_when(play == "paat" ~ "Pass Atts",
+                            play == "payd" ~ "Pass Yards",
+                            play == "patd" ~ "Pass TDs",
+                            play == "paco" ~ "Pass Comps",
+                            play == "ruat" ~ "Rush Atts",
+                            play == "reyd" ~ "Rec Yards",
+                            play == "rec" ~ "Receptions",
+                            play == "paint" ~ "Pass Int",
+                            play == "to_score" ~ "Anytime TD",
+                            play == "ruyd" ~ "Rush Yards"),
+           play = factor(play, levels = c("Rush Yards", "Rec Yards", "Receptions", "Pass Yards", "Pass TDs", "Pass Int", "Pass Atts", "Pass Comps", "Rush Atts", "Anytime TD"))) %>%
+    left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("player_team" == "team_abbr")) %>%
+    mutate(player_team = team_logo_espn) %>%
+    select(-team_logo_espn) %>%
+    arrange(play, desc(diff_dk_fp), desc(diff_fd_fp)) %>%
+    group_by(play) %>%
+    #gt(rowname_col = "player") %>%
+    gt() %>%
+    gt_img_rows(columns = player_team,
+                img_source = "web",
+                height= 20) %>%
+    sub_missing(missing_text = "-") %>%
+    tab_spanner(label = "DraftKings",
+                id = "draftkings",
+                columns = c(point_dk_over, odds_dk_over, odds_dk_under)) %>%
+    tab_spanner(label = "FanDuel",
+                id = "fanduel",
+                columns = c(point_fd_over, odds_fd_over, odds_fd_under)) %>%
+    tab_spanner(label = "Books",
+                id = "books",
+                spanners = c("draftkings", "fanduel")) %>%
+    tab_spanner(label = "FantasyPros",
+                id = "fp",
+                columns = c(proj_fp, diff_dk_fp, diff_fd_fp)) %>%
+    tab_spanner(label = "Projections",
+                id = "projections",
+                spanners = "fp") %>%
+    fmt_number(columns = c(odds_dk_over, odds_dk_under, odds_fd_over, odds_fd_under),
+               decimals = 0, force_sign = TRUE) %>%
+    cols_merge(columns = c(odds_dk_over, odds_dk_under),
+               pattern = "{1}/{2}") %>%
+    cols_merge(columns = c(odds_fd_over, odds_fd_under),
+               pattern = "{1}/{2}") %>%
+    #sub_values(values = "-/-", replacement = "") %>%
+    fmt_number(columns = c(point_dk_over, point_fd_over),
+               decimals = 1) %>%
+    fmt_number(columns = proj_fp,
+               rows = play %in% c("Pass Atts", "Receptions", "Pass Comps", "Anytime TD", "Rush Atts", "Pass TDs"),
+               decimals = 1) %>%
+    fmt_number(columns =  proj_fp,
+               rows = play %in% c("Rush Yards", "Pass Yards", "Rec Yards"),
+               decimals = 0) %>%
+    fmt_number(columns = c(diff_dk_fp, diff_fd_fp),
+               decimals = 1, force_sign = TRUE) %>%
+    cols_label(player ~ "",
+               headshot_url ~ "",
+               player_team ~ "Team",
+               point_dk_over ~ "Line",
+               odds_dk_over ~ "Odds",
+               point_fd_over ~ "Line",
+               odds_fd_over ~ "Odds",
+               proj_fp ~ "Proj.",
+               diff_dk_fp ~ "DK Δ",
+               diff_fd_fp ~ "FD Δ") %>%
+    data_color(columns = c(diff_dk_fp, diff_fd_fp),
+               rows = (play %in% c("Pass Atts", "Pass Comps", "Receptions", "Rush Atts")),
+               palette = c("green", "white", "white", "green"),
+               domain = c(-5, 5),
+               na_color = "white") %>%
+    data_color(columns = c(diff_dk_fp, diff_fd_fp),
+               rows = (play %in% c("Pass Yards", "Rec Yards", "Rush Yards")),
+               palette = c("green", "#cdffcd", "white", "#cdffcd", "green"),
+               domain = c(-50, 50),
+               na_color = "white") %>%
+    #  tab_stub_indent(rows = everything(), indent = 3) %>%
+    tab_style(style = cell_text(weight = "bold"),
+              locations = cells_row_groups()) %>%
+    cols_align(align = "center", columns = !player) %>%
+    tab_header(paste0(nfl_week, " | Thursday Night Football")) %>%
+    #  tab_style(style = cell_borders(sides = "left"),
+    #           locations = cells_body(columns = "proj_ciely")) %>%
+    tab_style(style = cell_borders(sides = "left", style = "dotted"),
+              locations = cells_body(columns = "point_fd_over")) %>%
+    tab_style(style = cell_borders(sides = "left", style = "dotted"),
+              locations = cells_body(columns = "proj_fp")) %>%
+    gt_img_rows(columns = headshot_url,
+                img_source = "web",
+                height= 20)
+}, silent = TRUE)
+
+ifelse(ciely_update == nfl_week_int & class(values_gt) != "try-error",
+       gtsave(values_gt, expand = 100, filename = "NFL_PlayerProp_Values.png", vheight = 100, vwidth =1000),
+       ifelse(ciely_update != nfl_week_int & class(final_fp) != "try-error",
+       gtsave(final_fp, expand = 100, filename = "NFL_PlayerProp_Values.png", vheight = 100, vwidth =1000), NA))
+
 
 # fp only -----------------------------------------------------------------
 
@@ -585,7 +694,7 @@ thursday_fp <- try({final_df %>%
   tab_style(style = cell_text(weight = "bold"),
            locations = cells_row_groups()) %>%
   cols_align(align = "center", columns = !player) %>%
-  tab_header(paste0(nfl_week, "| Thursday Night Football")) %>%
+  tab_header(paste0(nfl_week, " | Thursday Night Football")) %>%
 #  tab_style(style = cell_borders(sides = "left"),
  #           locations = cells_body(columns = "proj_ciely")) %>%
   tab_style(style = cell_borders(sides = "left", style = "dotted"),
@@ -597,10 +706,111 @@ thursday_fp <- try({final_df %>%
                 height= 20)
 }, silent = TRUE)
 
-ifelse(class(thursday_fp) == "try-error", NA,
-       gtsave(thursday_fp, expand = 100,
-       filename = "TNF_PlayerProps_FantasyPros.png",
-       vheight = 100, vwidth =1000))
+thursday_all <- try({final_df %>%
+    filter(weekdays(commence_time) == "Thursday") %>%
+    left_join(., headshots, by = join_by("player" == "full_name")) %>%
+    select(c(play, headshot_url, player, player_team, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under, proj_ciely, diff_dk_ciely, diff_dk_fp, proj_fp, diff_fd_ciely, diff_fd_fp)) %>%
+    mutate(play = case_when(play == "paat" ~ "Pass Atts",
+                            play == "payd" ~ "Pass Yards",
+                            play == "patd" ~ "Pass TDs",
+                            play == "paco" ~ "Pass Comps",
+                            play == "ruat" ~ "Rush Atts",
+                            play == "reyd" ~ "Rec Yards",
+                            play == "rec" ~ "Receptions",
+                            play == "paint" ~ "Pass Int",
+                            play == "to_score" ~ "Anytime TD",
+                            play == "ruyd" ~ "Rush Yards"),
+           play = factor(play, levels = c("Rush Yards", "Rec Yards", "Receptions", "Pass Yards", "Pass TDs", "Pass Int", "Pass Atts", "Pass Comps", "Rush Atts", "Anytime TD"))) %>%
+    left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("player_team" == "team_abbr")) %>%
+    mutate(player_team = team_logo_espn) %>%
+    select(-team_logo_espn) %>%
+    arrange(play, desc(diff_dk_ciely), desc(diff_fd_ciely), desc(diff_dk_fp), desc(diff_fd_fp)) %>%
+    group_by(play) %>%
+    gt(rowname_col = "player") %>%
+    gt_img_rows(columns = player_team,
+                img_source = "web",
+                height= 20) %>%
+    sub_missing(missing_text = "-") %>%
+    tab_spanner(label = "DraftKings",
+                id = "draftkings",
+                columns = c(point_dk_over, odds_dk_over, odds_dk_under)) %>%
+    tab_spanner(label = "FanDuel",
+                id = "fanduel",
+                columns = c(point_fd_over, odds_fd_over, odds_fd_under)) %>%
+    tab_spanner(label = "Books",
+                id = "books",
+                spanners = c("draftkings", "fanduel")) %>%
+    tab_spanner(label = "Ciely",
+                id = "ciely",
+                columns = c(proj_ciely, diff_dk_ciely, diff_fd_ciely)) %>%
+    tab_spanner(label = "FantasyPros",
+                id = "fp",
+                columns = c(proj_fp, diff_dk_fp, diff_fd_fp)) %>%
+    tab_spanner(label = "Projections",
+                id = "projections",
+                spanners = c("ciely", "fp")) %>%
+    fmt_number(columns = c(odds_dk_over, odds_dk_under, odds_fd_over, odds_fd_under),
+               decimals = 0, force_sign = TRUE) %>%
+    cols_merge(columns = c(odds_dk_over, odds_dk_under),
+               pattern = "{1}/{2}") %>%
+    cols_merge(columns = c(odds_fd_over, odds_fd_under),
+               pattern = "{1}/{2}") %>%
+    #sub_values(values = "-/-", replacement = "") %>%
+    fmt_number(columns = c(point_dk_over, point_fd_over),
+               decimals = 1) %>%
+    fmt_number(columns = c(proj_ciely, proj_fp),
+               rows = play %in% c("Pass Atts", "Receptions", "Pass Comps", "Anytime TD", "Rush Atts", "Pass TDs"),
+               decimals = 1) %>%
+    fmt_number(columns = c(proj_ciely, proj_fp),
+               rows = play %in% c("Rush Yards", "Pass Yards", "Rec Yards"),
+               decimals = 0) %>%
+    fmt_number(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_dk_fp, diff_fd_fp),
+               decimals = 1, force_sign = TRUE) %>%
+    cols_label(player ~ "Player",
+               player_team ~ "Team",
+               point_dk_over ~ "Line",
+               odds_dk_over ~ "Odds",
+               point_fd_over ~ "Line",
+               odds_fd_over ~ "Odds",
+               proj_ciely ~ "Proj.",
+               diff_dk_ciely ~ "DK Δ",
+               diff_fd_ciely ~ "FD Δ",
+               proj_fp ~ "Proj.",
+               diff_dk_fp ~ "DK Δ",
+               diff_fd_fp ~ "FD Δ",
+               headshot_url ~ "") %>%
+    data_color(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_fd_fp),
+               rows = (play %in% c("Pass Atts", "Pass Comps", "Receptions", "Rush Atts")),
+               palette = c("green", "white", "white", "green"),
+               domain = c(-5, 5),
+               na_color = "white") %>%
+    data_color(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_fd_fp),
+               rows = (play %in% c("Pass Yards", "Rec Yards", "Rush Yards")),
+               palette = c("green", "white", "white", "green"),
+               domain = c(-50, 50),
+               na_color = "white") %>%
+    tab_stub_indent(rows = everything(), indent = 3) %>%
+    tab_style(style = cell_text(weight = "bold"),
+              locations = cells_row_groups()) %>%
+    cols_align(align = "center", columns = !player) %>%
+    tab_header(paste0("TNF ", nfl_week, " | Values")) %>%
+    tab_style(style = cell_borders(sides = "left"),
+              locations = cells_body(columns = "proj_ciely")) %>%
+    tab_style(style = cell_borders(sides = "left", style = "dotted"),
+              locations = cells_body(columns = "point_fd_over")) %>%
+    tab_style(style = cell_borders(sides = "left", style = "dotted"),
+              locations = cells_body(columns = "proj_fp")) %>%
+    gt_img_rows(columns = headshot_url,
+                img_source = "web",
+                height= 20)
+}, silent = TRUE)
+
+
+ifelse(wday(Sys.Date()) > 5, NA,
+       ifelse(ciely_update == nfl_week_int & class(thursday_all) != "try-error",
+              gtsave(thursday_all, expand = 100, filename = "TNF_PlayerProps.png", vheight = 100, vwidth =1000),
+              ifelse(ciely_update != nfl_week_int & class(thursday_fp) != "try-error",
+                     gtsave(thursday_fp, expand = 100, filename = "TNF_PlayerProps.png", vheight = 100, vwidth =1000), NA)))
 
 #dk_logo <- "https://www.crossingbroad.com/wp-content/uploads/2022/08/DraftKings-App-Icon.png"
 #fd_logo <- "https://promocodekings.com/wp-content/uploads/2022/03/FanDuel-NY-Logo.png"

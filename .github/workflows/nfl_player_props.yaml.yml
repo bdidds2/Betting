@@ -55,7 +55,7 @@ jobs:
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add TNF_PlayerProps_FantasyPros.png
+          git add TNF_PlayerProps.png
           git add NFL_PlayerProp_Values.png
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
