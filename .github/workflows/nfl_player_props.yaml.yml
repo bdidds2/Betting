@@ -44,6 +44,7 @@ jobs:
             any::openxlsx
             any::nflfastR
             any::nflreadr
+            any::gsheet
 
       - name: Check out repository
         uses: actions/checkout@v3

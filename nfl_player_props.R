@@ -13,6 +13,7 @@ library(gtExtras)
 library(nflfastR)
 library(png)
 library(webshot2)
+library(gsheet)
 #library(xml2)
 #library(gsheet)
 #library(purrr)
@@ -313,7 +314,9 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
 
 # ciely prop projections --------------------------------------------------
 
-ciely_url <- "https://cdn.theathletic.com/app/uploads/2023/09/09111710/FFB_WK1_saturday.xlsx"
+#ciely_url <- "https://cdn.theathletic.com/app/uploads/2023/09/09111710/FFB_WK1_saturday.xlsx"
+
+ciely_url <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1kXGEcUzGbWkhYz5kHt1LubkgKmwDxoO6VLPWoadc5ZI", format = "csv"), stringsAsFactors = FALSE) %>% pull()
 
 ciely_week <- str_match(ciely_url, "WK\\d+")[1, 1] %>% gsub("[^0-9]", "", .) %>% as.integer()
 
