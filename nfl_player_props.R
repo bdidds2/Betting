@@ -71,6 +71,7 @@ options(nflreadr.verbose = FALSE)
 headshots <- load_rosters(2023) %>%
   select(full_name, headshot_url) %>%
   mutate(full_name = case_when(full_name == "A.J. Brown" ~ "AJ Brown",
+                               full_name == "K.J. Osborn" ~ "KJ Osborn",
                                TRUE ~ full_name))
 
 # api setup ---------------------------------------------------------------
@@ -203,6 +204,7 @@ props_odds <- new_df %>%
                             player == "Brian Robinson Jr." ~ "Brian Robinson",
                             player == "Odell Beckham Jr." ~ "Odell Beckham",
                             player == "Michael Pittman Jr." ~ "Michael Pittman",
+                            player == "K.J. Osborn" ~ "KJ Osborn",
                             TRUE ~ player),
          outcome = case_when(outcome == "Over" ~"over",
                                       outcome == "Under" ~ "under",
@@ -302,6 +304,7 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
                             player == "Brian Robinson Jr." ~ "Brian Robinson",
                             player == "Odell Beckham Jr." ~ "Odell Beckham",
                             player == "Michael Pittman Jr." ~ "Michael Pittman",
+                            player == "K.J. Osborn" ~ "KJ Osborn",
                             TRUE ~ player)) %>%
   pivot_longer(cols = c(payd, paint, ruat, ruyd, rutd, rec, reyd, retd, patd, paat, paco), names_to = "play", values_to = "point") %>%
   filter(!is.na(point)) %>%
@@ -429,10 +432,13 @@ values_gt <- try({final_df %>%
   select(-team_logo_espn) %>%
   arrange(play, desc(diff_dk_ciely), desc(diff_fd_ciely), desc(diff_dk_fp), desc(diff_fd_fp)) %>%
   group_by(play) %>%
-  gt(rowname_col = "player") %>%
+  gt() %>%
   gt_img_rows(columns = player_team,
               img_source = "web",
               height= 20) %>%
+  gt_img_rows(columns = headshot_url,
+                img_source = "web",
+                height= 20) %>%
   sub_missing(missing_text = "-") %>%
   tab_spanner(label = "DraftKings",
               id = "draftkings",
@@ -469,7 +475,7 @@ values_gt <- try({final_df %>%
              decimals = 0) %>%
   fmt_number(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_dk_fp, diff_fd_fp),
              decimals = 1, force_sign = TRUE) %>%
-  cols_label(player ~ "Player",
+  cols_label(player ~ "",
              player_team ~ "Team",
              point_dk_over ~ "Line",
              odds_dk_over ~ "Odds",
@@ -492,7 +498,6 @@ values_gt <- try({final_df %>%
              palette = c("green", "white", "white", "green"),
              domain = c(-50, 50),
              na_color = "white") %>%
-  tab_stub_indent(rows = everything(), indent = 3) %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_row_groups()) %>%
   cols_align(align = "center", columns = !player) %>%
@@ -502,10 +507,7 @@ values_gt <- try({final_df %>%
   tab_style(style = cell_borders(sides = "left", style = "dotted"),
             locations = cells_body(columns = "point_fd_over")) %>%
   tab_style(style = cell_borders(sides = "left", style = "dotted"),
-            locations = cells_body(columns = "proj_fp")) %>%
-  gt_img_rows(columns = headshot_url,
-              img_source = "web",
-              height= 20)
+            locations = cells_body(columns = "proj_fp"))
 }, silent = TRUE)
 
 ifelse(class(values_gt) == "try-error", NA,
@@ -729,7 +731,7 @@ thursday_all <- try({final_df %>%
     select(-team_logo_espn) %>%
     arrange(play, desc(diff_dk_ciely), desc(diff_fd_ciely), desc(diff_dk_fp), desc(diff_fd_fp)) %>%
     group_by(play) %>%
-    gt(rowname_col = "player") %>%
+    gt() %>%
     gt_img_rows(columns = player_team,
                 img_source = "web",
                 height= 20) %>%
@@ -792,7 +794,7 @@ thursday_all <- try({final_df %>%
                palette = c("green", "white", "white", "green"),
                domain = c(-50, 50),
                na_color = "white") %>%
-    tab_stub_indent(rows = everything(), indent = 3) %>%
+   # tab_stub_indent(rows = everything(), indent = 3) %>%
     tab_style(style = cell_text(weight = "bold"),
               locations = cells_row_groups()) %>%
     cols_align(align = "center", columns = !player) %>%
