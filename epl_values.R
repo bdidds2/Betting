@@ -142,7 +142,7 @@ xpath <- '//*[@id="anchorRound"]/h1'
 # Extract content using the XPath
 result <- page %>% html_nodes(xpath = xpath) %>% html_text()
 
-result1 <- trimws(result) %>% gsub("Round", "Matchday", .)
+result1 <- trimws(result) %>% gsub("Round", "Matchweek", .)
 
 
 # football xg -------------------------------------------------------------
