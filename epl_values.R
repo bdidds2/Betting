@@ -12,6 +12,8 @@ library(janitor)
 library(gsheet)
 library(readr)
 library(purrr)
+library(rvest)
+library(gtExtras)
 
 
 # odds api ----------------------------------------------------------------
@@ -40,7 +42,6 @@ epl_h2h_content <- fromJSON(content(response, "text")) %>%
   filter(commence_time >= Sys.Date(), commence_time <= epl_week_filter) %>%
   as.data.frame()
 
-epl_dates <- min(epl_odds$commence_time)
 
 epl_game_df <- epl_h2h_content %>% select(id) %>% distinct() %>% as.data.frame()
 
@@ -126,7 +127,8 @@ epl_odds <- bind_rows(new_df %>% clean_names() %>% select(commence_time, away_te
          book = ifelse(book == "draftkings", "dk", ifelse(book == "fanduel", "fd", book)),
          commence_time = with_tz(ymd_hms(commence_time, tz = "UTC"), tzone = "America/New_York"),
          game_time = paste(weekdays(commence_time), format(commence_time, "%I:%M%p")),
-         game_time = gsub(" 0", " ", game_time))
+         game_time = gsub(" 0", " ", game_time)) %>%
+  select(-c(dratings_name.x, dratings_name.y))
 
 epl_dates <- paste0(format(min(epl_odds$commence_time), "%b %d"), " - ", format(max(epl_odds$commence_time), "%b %d"))
 
@@ -235,8 +237,30 @@ dratings_df <- dratings1 %>%
 
 # epl_final -------------------------------------------------------------
 
-epl_sides <- epl_odds %>% filter(outcome != "yes", outcome != "no") %>% pivot_wider(names_from = c(book, outcome), values_from = c(odds, prob))
-epl_btts <-  epl_odds %>% filter(outcome == "yes" | outcome == "no") %>% pivot_wider(names_from = c(book, outcome), values_from = c(odds, prob))
+#epl_sides <- epl_odds %>% filter(outcome != "yes", outcome != "no") %>% pivot_wider(names_from = c(book, outcome), values_from = c(odds, prob))
+#epl_btts <-  epl_odds %>% filter(outcome == "yes" | outcome == "no") %>% pivot_wider(names_from = c(book, outcome), values_from = c(odds, prob))
+
+epl_final <- epl_odds %>%
+  pivot_wider(names_from = c(book, outcome, play), values_from = c(odds, prob)) %>%
+  left_join(., xg, by = "game_id") %>%
+  rename("home_team" = "home_team.x", "away_team" = "away_team.x") %>%
+  select(-c(home_team.y, away_team.y)) %>%
+  left_join(., dratings_df, by = "game_id") %>%
+  rename("home_team" = "home_team.x", "away_team" = "away_team.x") %>%
+  select(-c(home_team.y, away_team.y)) %>%
+  mutate(away_ml_dk_value_xg = away_ml_xg - prob_dk_away_h2h,
+         away_ml_dk_value_dr = away_ml_dr - prob_dk_away_h2h,
+         home_ml_dk_value_xg = home_ml_xg - prob_dk_home_h2h,
+         home_ml_dk_value_dr = home_ml_dr - prob_dk_home_h2h,
+         draw_ml_dk_value_xg = draw_ml_xg - prob_dk_draw_h2h,
+         draw_ml_dk_value_dr = draw_ml_dr - prob_dk_draw_h2h,
+         away_dnb_dk_value_xg = away_dnb_xg - prob_dk_away_draw_no_bet,
+         away_dnb_dk_value_dr = away_dnb_dr - prob_dk_away_draw_no_bet,
+         home_dnb_dk_value_xg = home_dnb_xg - prob_dk_home_draw_no_bet,
+         home_dnb_dk_value_dr = home_dnb_dr - prob_dk_home_draw_no_bet,
+         btts_yes_dk_value_xg = btts_yes_xg - prob_dk_yes_btts,
+         btts_no_dk_value_xg = btts_no_xg - prob_dk_no_btts)
+
 
 crests <- read_csv("https://raw.githubusercontent.com/dm13450/FootballCrests/main/crest.csv", show_col_types = FALSE) %>%
   clean_names() %>%
