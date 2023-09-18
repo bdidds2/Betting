@@ -626,9 +626,9 @@ final_fp <- try({final_df %>%
 }, silent = TRUE)
 
 ifelse(ciely_week == nfl_week_int & class(values_gt) != "try-error",
-       gtsave(values_gt, expand = 100, filename = "NFL_Player_Prop_Values", vheight = 100, vwidth =1000),
+       gtsave(values_gt, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth =1000),
        ifelse(ciely_week != nfl_week_int & class(final_fp) != "try-error",
-       gtsave(final_fp, expand = 100, filename = "NFL_Player_Prop_Values", vheight = 100, vwidth =1000), NA))
+       gtsave(final_fp, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth =1000), NA))
 
 
 # TNF only -----------------------------------------------------------------
