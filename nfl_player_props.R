@@ -945,7 +945,7 @@ all_props <- try({final_df %>%
                 height= 20)
 }, silent = TRUE)
 
-ifelse(ciely_week == nfl_week_int & class(all_props) != "try-error",
+ifelse(class(all_props) != "try-error",
               gtsave(all_props, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1000),
               ifelse(ciely_week != nfl_week_int & class(thursday_fp) != "try-error",
                      gtsave(thursday_fp, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1000), NA))
