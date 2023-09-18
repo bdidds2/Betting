@@ -173,17 +173,17 @@ xg <- read.csv(text = gsheet2text("docs.google.com/spreadsheets/d/1yfzhYPUJfj8BV
 # dratings ----------------------------------------------------------------
 
 dratings_url1 <- "https://www.dratings.com/predictor/english-premier-league-predictions/upcoming/1?conference_id=55#scroll-upcoming"
-dratings_raw1 <- ifelse(length(html_table(read_html(dratings_url1))) == 4, html_table(read_html(dratings_url1))[1], NA)[[1]]
+dratings_raw1 <- ifelse(length(html_table(read_html(dratings_url1))) > 3, html_table(read_html(dratings_url1))[1], NA)[[1]]
 dratings_url2 <- "https://www.dratings.com/predictor/english-premier-league-predictions/upcoming/2?conference_id=55#scroll-upcoming"
-dratings_raw2 <- ifelse(length(html_table(read_html(dratings_url2))) == 4, html_table(read_html(dratings_url2))[1], NA)[[1]]
+dratings_raw2 <- ifelse(length(html_table(read_html(dratings_url2))) > 3, html_table(read_html(dratings_url2))[1], NA)[[1]]
 dratings_url3 <- "https://www.dratings.com/predictor/english-premier-league-predictions/upcoming/3?conference_id=55#scroll-upcoming"
-dratings_raw3 <- ifelse(length(html_table(read_html(dratings_url3))) == 4, html_table(read_html(dratings_url3))[1], NA)[[1]]
+dratings_raw3 <- ifelse(length(html_table(read_html(dratings_url3))) > 3, html_table(read_html(dratings_url3))[1], NA)[[1]]
 dratings_url4 <- "https://www.dratings.com/predictor/english-premier-league-predictions/upcoming/4?conference_id=55#scroll-upcoming"
-dratings_raw4 <- ifelse(length(html_table(read_html(dratings_url4))) == 4, html_table(read_html(dratings_url4))[1], NA)[[1]]
+dratings_raw4 <- ifelse(length(html_table(read_html(dratings_url4))) > 3, html_table(read_html(dratings_url4))[1], NA)[[1]]
 dratings_url5 <- "https://www.dratings.com/predictor/english-premier-league-predictions/upcoming/5?conference_id=55#scroll-upcoming"
-dratings_raw5 <- ifelse(length(html_table(read_html(dratings_url5))) == 4, html_table(read_html(dratings_url5))[1], NA)[[1]]
+dratings_raw5 <- ifelse(length(html_table(read_html(dratings_url5))) > 3, html_table(read_html(dratings_url5))[1], NA)[[1]]
 dratings_url6 <- "https://www.dratings.com/predictor/english-premier-league-predictions/upcoming/6?conference_id=55#scroll-upcoming"
-dratings_raw6 <- ifelse(length(html_table(read_html(dratings_url6))) == 4, html_table(read_html(dratings_url6))[1], NA)[[1]]
+dratings_raw6 <- ifelse(length(html_table(read_html(dratings_url6))) > 3, html_table(read_html(dratings_url6))[1], NA)[[1]]
 
 df_list <- list(dratings_raw1, dratings_raw2, dratings_raw3, dratings_raw4, dratings_raw5, dratings_raw6)
 

@@ -594,4 +594,4 @@ final_gt2 <- final_plays2 %>%
 
 ifelse(class(final_gt2) != "try-error",
        gtsave(final_gt2, expand = 100, filename = "NFL_Game_Values.png", vheight = 100, vwidth =1000),
-       , NA)
+       NA)
