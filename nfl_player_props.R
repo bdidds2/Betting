@@ -92,7 +92,7 @@ response <- GET(url)
 weekdays_vector <- c("Monday", "Sunday", "Saturday", "Friday", "Thursday", "Wednesday", "Tuesday")
 
 # Get the day of the week as a numeric value (1 for Monday, 2 for Tuesday, etc.)
-day_of_week_num <- match(weekdays(Sys.Date()), weekdays_vector) - 1
+day_of_week_num <- match(weekdays(Sys.Date()), weekdays_vector)
 
 week_filter_date <- Sys.Date()+day_of_week_num
 week_filter_date1 <- Sys.Date()
@@ -122,12 +122,12 @@ content <- fromJSON(content(response, "text")) %>%
                           commence_time >= as.Date("2023-12-28") & commence_time < as.Date("2023-01-02") ~ "week_17",
                           commence_time >= as.Date("2024-01-04") & commence_time < as.Date("2024-01-09") ~ "week_18",
                           TRUE ~ "Unknown"),
-         week_filter = ifelse(commence_time <= as.Date(week_filter_date) & commence_time > week_filter_date1, 1, 0))
+         week_filter = ifelse(commence_time <= as.Date(week_filter_date) & commence_time >= week_filter_date1, 1, 0))
 
-all_game_df <- as.data.frame(unique(content %>% filter(week_filter == 1, commence_time > Sys.Date()) %>% select(id)))
-tnf_game_df <- as.data.frame(unique(content %>% filter(week_filter == 1, commence_time > Sys.Date(), weekdays(commence_time) == "Thursday") %>% select(id)))
+all_game_df <- as.data.frame(unique(content %>% filter(week_filter == 1, commence_time >= Sys.Date()) %>% select(id)))
+tnf_game_df <- as.data.frame(unique(content %>% filter(week_filter == 1, commence_time >= Sys.Date(), weekdays(commence_time) == "Thursday") %>% select(id)))
 
-game_df1 <- ifelse(wday(Sys.Date(), week_start = 1) >= 4, all_game_df, tnf_game_df)
+game_df1 <- ifelse(wday(Sys.Date(), week_start = 1) >= 4 | wday(Sys.Date(), week_start = 1) <= 1, all_game_df, tnf_game_df)
 game_df <-  as.data.frame(unlist(game_df1)) %>% setNames("id")
 
 
@@ -205,6 +205,13 @@ props_odds <- new_df %>%
                             player == "Odell Beckham Jr." ~ "Odell Beckham",
                             player == "Michael Pittman Jr." ~ "Michael Pittman",
                             player == "K.J. Osborn" ~ "KJ Osborn",
+                            player == "Calvin Austin III" ~ "Calvin Austin",
+                            player == "D.J. Chark Jr." ~ "DJ Chark",
+                            player == "Laviska Shenault Jr." ~ "Laviska Shenault",
+                            player == "Anthony McfFarland Jr." ~ "Anthony McFarland",
+                            player == "Pierre Strong Jr." ~ "Pierre Strong",
+                            player == "Terrace Marshall Jr." ~ "Terrace Marshall",
+                            player == "Tony Jones Jr." ~ "Tony Jones",
                             TRUE ~ player),
          outcome = case_when(outcome == "Over" ~"over",
                                       outcome == "Under" ~ "under",
@@ -305,6 +312,7 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
                             player == "Odell Beckham Jr." ~ "Odell Beckham",
                             player == "Michael Pittman Jr." ~ "Michael Pittman",
                             player == "K.J. Osborn" ~ "KJ Osborn",
+                            player == "Allen Robinson II" ~ "Allen Robinson",
                             TRUE ~ player)) %>%
   pivot_longer(cols = c(payd, paint, ruat, ruyd, rutd, rec, reyd, retd, patd, paat, paco), names_to = "play", values_to = "point") %>%
   filter(!is.na(point)) %>%
@@ -390,21 +398,25 @@ final_df <- props_odds %>%
          diff_fd_ciely = ifelse(!is.na(proj_ciely) & !is.na(point_fd_over) & is.numeric(point_fd_over), proj_ciely - point_fd_over, NA),
          diff_dk_fp = ifelse(!is.na(proj_fp) & !is.na(point_dk_over), proj_fp - point_dk_over, NA),
          diff_fd_fp = ifelse(!is.na(proj_fp) & !is.na(point_fd_over), proj_fp - point_fd_over, NA),
-         value_dk_ciely = case_when(play %in% c("payd", "reyd", "ruyd") & abs(diff_dk_ciely) > 20 ~ 1,
-                                    play %in% c("paco", "paat") & abs(diff_dk_ciely) > 3.5 ~ 1,
-                                    play %in% c("rec", "ruat") & abs(diff_dk_ciely) > 1 ~ 1,
+         value_dk_ciely = case_when(play %in% c("payd") & abs(diff_dk_ciely) > 20 ~ 1,
+                                    play %in% c("reyd", "ruyd") & abs(diff_dk_ciely) > 15 ~ 1,
+                                    play %in% c("paco", "paat") & abs(diff_dk_ciely) > 4.5 ~ 1,
+                                    play %in% c("rec", "ruat") & abs(diff_dk_ciely) > 1.1 ~ 1,
                                     TRUE ~ 0),
-         value_fd_ciely = case_when(play %in% c("payd", "reyd", "ruyd") & abs(diff_fd_ciely) > 20 ~ 1,
-                                    play %in% c("paco", "paat") & abs(diff_fd_ciely) > 3.5 ~ 1,
-                                    play %in% c("rec", "ruat") & abs(diff_fd_ciely) > 1 ~ 1,
+         value_fd_ciely = case_when(play %in% c("payd") & abs(diff_fd_ciely) > 20 ~ 1,
+                                    play %in% c("reyd", "ruyd") & abs(diff_fd_ciely) > 15 ~ 1,
+                                    play %in% c("paco", "paat") & abs(diff_fd_ciely) > 4.5 ~ 1,
+                                    play %in% c("rec", "ruat") & abs(diff_fd_ciely) > 1.1 ~ 1,
                                     TRUE ~ 0),
-         value_dk_fp = case_when(play %in% c("payd", "reyd", "ruyd") & abs(diff_dk_fp) > 20 ~ 1,
-                                 play %in% c("paco", "paat") & abs(diff_dk_fp) > 3.5 ~ 1,
-                                 play %in% c("rec", "ruat") & abs(diff_dk_fp) > 1 ~ 1,
+         value_dk_fp = case_when(play %in% c("payd") & abs(diff_dk_fp) > 20 ~ 1,
+                                 play %in% c("reyd", "ruyd") & abs(diff_dk_fp) > 15 ~ 1,
+                                 play %in% c("paco", "paat") & abs(diff_dk_fp) > 4.5 ~ 1,
+                                 play %in% c("rec", "ruat") & abs(diff_dk_fp) > 1.1 ~ 1,
                                     TRUE ~ 0),
-         value_fd_fp = case_when(play %in% c("payd", "reyd", "ruyd") & abs(diff_fd_fp) > 20 ~ 1,
-                                 play %in% c("paco", "paat") & abs(diff_fd_fp) > 3.5 ~ 1,
-                                 play %in% c("rec", "ruat") & abs(diff_fd_fp) > 1 ~ 1,
+         value_fd_fp = case_when(play %in% c("payd") & abs(diff_fd_fp) > 20 ~ 1,
+                                 play %in% c("reyd", "ruyd") & abs(diff_fd_fp) > 15 ~ 1,
+                                 play %in% c("paco", "paat") & abs(diff_fd_fp) > 4.5 ~ 1,
+                                 play %in% c("rec", "ruat") & abs(diff_fd_fp) > 1.1 ~ 1,
                                     TRUE ~ 0),
          value = ifelse(value_dk_ciely == 1| value_fd_ciely == 1 | value_dk_fp == 1 | value_fd_fp == 1, 1, 0)) %>%
   left_join(., team_table, by = c("away_team" = "full_name")) %>%
@@ -434,7 +446,7 @@ values_gt <- try({final_df %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("player_team" == "team_abbr")) %>%
   mutate(player_team = team_logo_espn) %>%
   select(-team_logo_espn) %>%
-  arrange(play, desc(diff_dk_ciely), desc(diff_fd_ciely), desc(diff_dk_fp), desc(diff_fd_fp)) %>%
+  arrange(play, desc(point_dk_over)) %>%
   group_by(play) %>%
   gt() %>%
   gt_img_rows(columns = player_team,
@@ -514,10 +526,10 @@ values_gt <- try({final_df %>%
             locations = cells_body(columns = "proj_fp"))
 }, silent = TRUE)
 
-ifelse(class(values_gt) == "try-error", NA,
-   gtsave(values_gt, expand = 100,
-       filename = "NFL_PlayerProp_Values.png",
-       vheight = 100, vwidth =1000))
+#ifelse(class(values_gt) == "try-error", NA,
+#   gtsave(values_gt, expand = 100,
+#       filename = "NFL_Player_Prop_Values.png",
+#       vheight = 100, vwidth =1000))
 
 final_fp <- try({final_df %>%
     filter(value == 1) %>%
@@ -537,7 +549,7 @@ final_fp <- try({final_df %>%
     left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("player_team" == "team_abbr")) %>%
     mutate(player_team = team_logo_espn) %>%
     select(-team_logo_espn) %>%
-    arrange(play, desc(diff_dk_fp), desc(diff_fd_fp)) %>%
+    arrange(play, desc(points_dk_over)) %>%
     group_by(play) %>%
     #gt(rowname_col = "player") %>%
     gt() %>%
@@ -614,12 +626,12 @@ final_fp <- try({final_df %>%
 }, silent = TRUE)
 
 ifelse(ciely_week == nfl_week_int & class(values_gt) != "try-error",
-       gtsave(values_gt, expand = 100, filename = "NFL_PlayerProp_Values.png", vheight = 100, vwidth =1000),
+       gtsave(values_gt, expand = 100, filename = "NFL_Player_Prop_Values", vheight = 100, vwidth =1000),
        ifelse(ciely_week != nfl_week_int & class(final_fp) != "try-error",
-       gtsave(final_fp, expand = 100, filename = "NFL_PlayerProp_Values.png", vheight = 100, vwidth =1000), NA))
+       gtsave(final_fp, expand = 100, filename = "NFL_Player_Prop_Values", vheight = 100, vwidth =1000), NA))
 
 
-# fp only -----------------------------------------------------------------
+# TNF only -----------------------------------------------------------------
 
 today_day_of_week <- wday(Sys.Date())
 
@@ -820,9 +832,124 @@ thursday_all <- try({final_df %>%
 
 ifelse(wday(Sys.Date()) > 5, NA,
        ifelse(ciely_week == nfl_week_int & class(thursday_all) != "try-error",
-              gtsave(thursday_all, expand = 100, filename = "TNF_PlayerProps.png", vheight = 100, vwidth =1000),
+              gtsave(thursday_all, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1000),
               ifelse(ciely_week != nfl_week_int & class(thursday_fp) != "try-error",
-                     gtsave(thursday_fp, expand = 100, filename = "TNF_PlayerProps.png", vheight = 100, vwidth =1000), NA)))
+                     gtsave(thursday_fp, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1000), NA)))
+
+
+# MNF only -----------------------------------------------------------------
+
+today_day_of_week <- wday(Sys.Date())
+
+title <- case_when(today_day_of_week > 2 & today_day_of_week < 6 ~ paste0("TNF - ", nfl_week),
+                   today_day_of_week == 2 ~ paste0("MNF - ", nfl_week),
+                   TRUE ~ nfl_week)
+
+all_props <- try({final_df %>%
+    filter(ifelse(today_day_of_week > 2 & today_day_of_week < 6, weekdays(commence_time) == "Thursday", ifelse(today_day_of_week == 2, weekdays(commence_time) == "Monday", weekdays(commence_time) != "Thursday"))) %>%
+    left_join(., headshots, by = join_by("player" == "full_name")) %>%
+    select(c(play, headshot_url, player, player_team, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under, proj_ciely, diff_dk_ciely, diff_dk_fp, proj_fp, diff_fd_ciely, diff_fd_fp)) %>%
+    mutate(play = case_when(play == "paat" ~ "Pass Atts",
+                            play == "payd" ~ "Pass Yards",
+                            play == "patd" ~ "Pass TDs",
+                            play == "paco" ~ "Pass Comps",
+                            play == "ruat" ~ "Rush Atts",
+                            play == "reyd" ~ "Rec Yards",
+                            play == "rec" ~ "Receptions",
+                            play == "paint" ~ "Pass Int",
+                            play == "to_score" ~ "Anytime TD",
+                            play == "ruyd" ~ "Rush Yards"),
+           play = factor(play, levels = c("Rush Yards", "Rec Yards", "Receptions", "Pass Yards", "Pass TDs", "Pass Int", "Pass Atts", "Pass Comps", "Rush Atts", "Anytime TD"))) %>%
+    left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("player_team" == "team_abbr")) %>%
+    mutate(player_team = team_logo_espn) %>%
+    select(-team_logo_espn) %>%
+    arrange(play, desc(point_dk_over)) %>%
+    group_by(play) %>%
+    gt() %>%
+    gt_img_rows(columns = player_team,
+                img_source = "web",
+                height= 20) %>%
+    sub_missing(missing_text = "-") %>%
+    tab_spanner(label = "DraftKings",
+                id = "draftkings",
+                columns = c(point_dk_over, odds_dk_over, odds_dk_under)) %>%
+    tab_spanner(label = "FanDuel",
+                id = "fanduel",
+                columns = c(point_fd_over, odds_fd_over, odds_fd_under)) %>%
+    tab_spanner(label = "Books",
+                id = "books",
+                spanners = c("draftkings", "fanduel")) %>%
+    tab_spanner(label = "Ciely",
+                id = "ciely",
+                columns = c(proj_ciely, diff_dk_ciely, diff_fd_ciely)) %>%
+    tab_spanner(label = "FantasyPros",
+                id = "fp",
+                columns = c(proj_fp, diff_dk_fp, diff_fd_fp)) %>%
+    tab_spanner(label = "Projections",
+                id = "projections",
+                spanners = c("ciely", "fp")) %>%
+    fmt_number(columns = c(odds_dk_over, odds_dk_under, odds_fd_over, odds_fd_under),
+               decimals = 0, force_sign = TRUE) %>%
+    cols_merge(columns = c(odds_dk_over, odds_dk_under),
+               pattern = "{1}/{2}") %>%
+    cols_merge(columns = c(odds_fd_over, odds_fd_under),
+               pattern = "{1}/{2}") %>%
+    #sub_values(values = "-/-", replacement = "") %>%
+    fmt_number(columns = c(point_dk_over, point_fd_over),
+               decimals = 1) %>%
+    fmt_number(columns = c(proj_ciely, proj_fp),
+               rows = play %in% c("Pass Atts", "Receptions", "Pass Comps", "Anytime TD", "Rush Atts", "Pass TDs"),
+               decimals = 1) %>%
+    fmt_number(columns = c(proj_ciely, proj_fp),
+               rows = play %in% c("Rush Yards", "Pass Yards", "Rec Yards"),
+               decimals = 0) %>%
+    fmt_number(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_dk_fp, diff_fd_fp),
+               decimals = 1, force_sign = TRUE) %>%
+    cols_label(player ~ "Player",
+               player_team ~ "Team",
+               point_dk_over ~ "Line",
+               odds_dk_over ~ "Odds",
+               point_fd_over ~ "Line",
+               odds_fd_over ~ "Odds",
+               proj_ciely ~ "Proj.",
+               diff_dk_ciely ~ "DK Δ",
+               diff_fd_ciely ~ "FD Δ",
+               proj_fp ~ "Proj.",
+               diff_dk_fp ~ "DK Δ",
+               diff_fd_fp ~ "FD Δ",
+               headshot_url ~ "") %>%
+    data_color(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_fd_fp),
+               rows = (play %in% c("Pass Atts", "Pass Comps", "Receptions", "Rush Atts")),
+               palette = c("green", "white", "white", "green"),
+               domain = c(-5, 5),
+               na_color = "white") %>%
+    data_color(columns = c(diff_dk_ciely, diff_fd_ciely, diff_dk_fp, diff_fd_fp),
+               rows = (play %in% c("Pass Yards", "Rec Yards", "Rush Yards")),
+               palette = c("green", "white", "white", "green"),
+               domain = c(-50, 50),
+               na_color = "white") %>%
+    # tab_stub_indent(rows = everything(), indent = 3) %>%
+    tab_style(style = cell_text(weight = "bold"),
+              locations = cells_row_groups()) %>%
+    cols_align(align = "center", columns = !player) %>%
+    tab_header(title,
+               subtitle = "Player Props") %>%
+    tab_style(style = cell_borders(sides = "left"),
+              locations = cells_body(columns = "proj_ciely")) %>%
+    tab_style(style = cell_borders(sides = "left", style = "dotted"),
+              locations = cells_body(columns = "point_fd_over")) %>%
+    tab_style(style = cell_borders(sides = "left", style = "dotted"),
+              locations = cells_body(columns = "proj_fp")) %>%
+    gt_img_rows(columns = headshot_url,
+                img_source = "web",
+                height= 20)
+}, silent = TRUE)
+
+ifelse(ciely_week == nfl_week_int & class(all_props) != "try-error",
+              gtsave(all_props, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1000),
+              ifelse(ciely_week != nfl_week_int & class(thursday_fp) != "try-error",
+                     gtsave(thursday_fp, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1000), NA))
+
 
 #dk_logo <- "https://www.crossingbroad.com/wp-content/uploads/2022/08/DraftKings-App-Icon.png"
 #fd_logo <- "https://promocodekings.com/wp-content/uploads/2022/03/FanDuel-NY-Logo.png"

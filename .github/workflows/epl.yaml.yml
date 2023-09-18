@@ -8,6 +8,8 @@ on:
     - cron: '0 14 * * 5'
     - cron: '0 14 * * 6'
     - cron: '0 14 * * 1'
+    - cron: '0 14 * * 0'
+    - cron: '0 6 * * 6'
 
 jobs:
   import-data:

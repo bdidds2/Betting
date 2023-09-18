@@ -16,6 +16,7 @@ on:
     - cron: '0 10 * * 0'
     - cron: '45 8 * * 3'
     - cron: '10 16 * * 4'
+    - cron: '0 10 * * 1'
 
 jobs:
   import-data:
@@ -57,7 +58,7 @@ jobs:
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add TNF_PlayerProps.png
-          git add NFL_PlayerProp_Values.png
+          git add NFL_Player_Props_All.png
+          git add NFL_Player_Prop_Values.png
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
