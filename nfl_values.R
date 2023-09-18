@@ -487,6 +487,10 @@ final_plays <- standard_plays %>%
 
 # final play s2 -----------------------------------------------------------
 
+nfl_week_raw <- unique(content %>% filter(week_filter == 1) %>% select(week)) %>% pull()
+nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
+
+
 final_plays2 <- standard_plays %>%
   mutate(home_points_dk = (points_dk_over_totals / 2) - (points_dk_home_spreads / 2),
          away_points_dk = (points_dk_over_totals / 2) - (points_dk_away_spreads / 2)) %>%
@@ -590,7 +594,8 @@ final_gt2 <- final_plays2 %>%
   tab_style(style = cell_borders(sides = "right", style = "solid"),
             locations = cells_body(columns = 6)) %>%
   cols_width(ends_with("_diff") ~ px(50),
-             "points_dk_over_totals" ~ px(50))
+             "points_dk_over_totals" ~ px(50)) %>%
+  tab_header(nfl_week)
 
 ifelse(class(final_gt2) != "try-error",
        gtsave(final_gt2, expand = 100, filename = "NFL_Game_Values.png", vheight = 100, vwidth =1000),

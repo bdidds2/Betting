@@ -422,6 +422,6 @@ epl_gt2 <- epl_final %>%
               heading.title.font.weight = "bolder",
               heading.subtitle.font.size = 20)
 
-gtsave(epl_gt2, expand = 3000, filename = "EPL.png", vheight = 100, vwidth =2000)
-gtsave(epl_gt2, filename = "EPL.html")
+gtsave(epl_gt2, expand = 3000, filename = "EPL.png", vheight = 100, vwidth =3000)
+#gtsave(epl_gt2, filename = "EPL.html")
 
