@@ -121,6 +121,9 @@ content <- fromJSON(content(response, "text")) %>%
                           TRUE ~ "Unknown"),
          week_filter = ifelse(commence_time <= as.Date(week_filter_date), 1, 0))
 
+nfl_week_raw <- unique(content %>% filter(week_filter == 1) %>% select(week)) %>% pull()
+nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
+
 standard_plays <- content %>% filter(week_filter == 1) %>%
   clean_names() %>%
   mutate(markets_outcomes_name = case_when(markets_outcomes_name == away_team ~ "away",
@@ -486,9 +489,6 @@ final_plays <- standard_plays %>%
 
 
 # final play s2 -----------------------------------------------------------
-
-nfl_week_raw <- unique(content %>% filter(week_filter == 1) %>% select(week)) %>% pull()
-nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
 
 
 final_plays2 <- standard_plays %>%
