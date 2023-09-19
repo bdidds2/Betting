@@ -15,6 +15,7 @@ library(openxlsx)
 library(purrr)
 library(gtExtras)
 library(nflfastR)
+library(nflreadr)
 
 
 
@@ -124,7 +125,7 @@ content_nfl <- fromJSON(content(response_nfl, "text")) %>%
 nfl_week_raw <- unique(content_nfl %>% filter(week_filter == 1) %>% select(week)) %>% pull()
 nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
 
-standard_plays <- content_nfl %>% filter(week_filter == 1) %>%
+standard_plays_long <- content_nfl %>% filter(week_filter == 1) %>%
   clean_names() %>%
   mutate(markets_outcomes_name = case_when(markets_outcomes_name == away_team ~ "away",
                                            markets_outcomes_name == home_team ~ "home",
@@ -135,15 +136,17 @@ standard_plays <- content_nfl %>% filter(week_filter == 1) %>%
          prob = american_to_prob(markets_outcomes_price)) %>%
   select(-c(id, sport_key, sport_title, last_update, markets_last_update, title)) %>%
   rename("market" = "markets_key", "outcome" = "markets_outcomes_name", "odds" = "markets_outcomes_price", "points" = "markets_outcomes_point", "book" = "key") %>%
-  pivot_wider(names_from = c(book, outcome, market), values_from = c(prob, odds, points)) %>%
-  select(-c(points_fd_away_h2h, points_fd_home_h2h, points_dk_away_h2h, points_dk_home_h2h)) %>%
   left_join(., team_table, by = c("home_team" = "full_name")) %>%
   mutate(home_team = abbr) %>%
   select(-c(location, name, abbr)) %>%
   left_join(., team_table, by = c("away_team" = "full_name")) %>%
   mutate(away_team = abbr) %>%
   select(-c(location, name, abbr)) %>%
-  mutate(game_id = paste0(away_team, " - ", home_team)) %>%
+  mutate(game_id = paste0(away_team, " - ", home_team))
+  
+standard_plays <- standard_plays_long %>%  
+  pivot_wider(names_from = c(book, outcome, market), values_from = c(prob, odds, points)) %>%
+  select(-c(points_fd_away_h2h, points_fd_home_h2h, points_dk_away_h2h, points_dk_home_h2h)) %>%
   select(c(commence_time, week, game_id, everything())) %>%
   select(-week_filter)
 
@@ -157,7 +160,7 @@ spread_to_prob <- function(x){
   differences <- abs(spread_to_prob_data$line - x)
   closest_index <- which.min(differences)
   closest_value <- spread_to_prob_data$prob[closest_index]
- # prob <- spread_to_prob_data[spread_to_prob_data$line %in% x, ]$prob
+  # prob <- spread_to_prob_data[spread_to_prob_data$line %in% x, ]$prob
   return(closest_value)
 }
 
@@ -368,11 +371,11 @@ final_plays <- standard_plays %>%
   left_join(., oddsshark_df2, by = c("home_team", "away_team")) %>%
   left_join(., dratings_df, by = c("home_team", "away_team")) %>%
   #left_join(., team_table, by = c("home_team" = "full_name")) %>%
- # rename("game_id" = "game_id.x") %>%
+  # rename("game_id" = "game_id.x") %>%
   select(-c(contains("abbr"), contains("game_id."))) %>%
- # left_join(., team_table, by = c("away_team" = "full_name")) %>%
-#  mutate(away_team = abbr) %>%
-#  select(-c(location, name, abbr)) %>%
+  # left_join(., team_table, by = c("away_team" = "full_name")) %>%
+  #  mutate(away_team = abbr) %>%
+  #  select(-c(location, name, abbr)) %>%
   mutate(avg_home_spread = round((dimers_home_spread + actionnetwork_home_spread + oddsshark_home_spread + home_spread_dr) / 4, 1),
          avg_away_spread = round((dimers_away_spread + actionnetwork_away_spread + oddsshark_away_spread + away_spread_dr) / 4, 1),
          avg_home_prob = round((dimers_home_prob + actionnetwork_home_prob + oddsshark_home_prob + home_ml_dr) / 4, 1),
@@ -564,13 +567,13 @@ final_gt2 <- final_plays2 %>%
              oddsshark_home_spread_diff ~ "Shark",
              dimers_home_spread_diff ~ "Dimers",
              dratings_home_spread_diff ~ "DRatings",
-           #  avg_home_spread_diff ~ "Avg",
+             #  avg_home_spread_diff ~ "Avg",
              points_dk_over_totals ~ "Book",
              dratings_total_diff ~ "DRatings",
              oddsshark_total_diff ~ "Shark",
              away_team_icon ~ "",
              home_team_icon ~ ""
-             ) %>%
+  ) %>%
   fmt_number(columns = c(avg_book_spread, action_home_spread_diff, dratings_home_spread_diff, dimers_home_spread_diff, oddsshark_home_spread_diff, dratings_total_diff, oddsshark_total_diff),
              decimals = 1, force_sign = TRUE) %>%
   cols_align(columns = -game_time, align = "center") %>%
@@ -600,3 +603,13 @@ final_gt2 <- final_plays2 %>%
 ifelse(class(final_gt2) != "try-error",
        gtsave(final_gt2, expand = 100, filename = "NFL_Game_Values.png", vheight = 100, vwidth =1000),
        NA)
+
+
+# nfl outcomes ------------------------------------------------------------
+
+outcomes_nfl_raw <- load_schedules(2023)
+outcomes_nfl <- outcomes_nfl_raw %>%
+  filter(!is.na(away_score)) %>%
+  select(c(season, week, away_team, home_team, away_score, home_score, result, total)) %>%
+  mutate(game_id = paste0(away_team, " - ", home_team)) %>%
+  as.data.frame()

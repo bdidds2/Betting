@@ -14,6 +14,7 @@ library(readr)
 library(purrr)
 library(rvest)
 library(gtExtras)
+library(worldfootballR)
 
 
 # odds api ----------------------------------------------------------------
@@ -185,9 +186,9 @@ dratings_raw5 <- ifelse(length(html_table(read_html(dratings_url5))) > 3, html_t
 dratings_url6 <- "https://www.dratings.com/predictor/english-premier-league-predictions/upcoming/6?conference_id=55#scroll-upcoming"
 dratings_raw6 <- ifelse(length(html_table(read_html(dratings_url6))) > 3, html_table(read_html(dratings_url6))[1], NA)[[1]]
 
-df_list <- list(dratings_raw1, dratings_raw2, dratings_raw3, dratings_raw4, dratings_raw5, dratings_raw6)
+df_list_epl <- list(dratings_raw1, dratings_raw2, dratings_raw3, dratings_raw4, dratings_raw5, dratings_raw6)
 
-filtered_df_list <- lapply(df_list, function(df) {
+filtered_df_list_epl <- lapply(df_list_epl, function(df) {
   if (is.data.frame(df)) {
     df <- df %>% filter_all(any_vars(!is.na(.)))
     if (nrow(df) > 0) {
@@ -198,10 +199,10 @@ filtered_df_list <- lapply(df_list, function(df) {
 })
 
 # Remove NULL entries and bind rows
-filtered_df_list <- do.call(rbind, Filter(Negate(is.null), filtered_df_list))
+filtered_df_list_epl <- do.call(rbind, Filter(Negate(is.null), filtered_df_list_epl))
 
 
-dratings1 <- filtered_df_list %>%
+dratings_epl1 <- filtered_df_list_epl %>%
   select(c(Teams, Win, Draw, Goals, TotalGoals)) %>%
   clean_names() %>%
   as.data.frame() %>%
@@ -211,11 +212,11 @@ dratings1 <- filtered_df_list %>%
          home_goals_dr = substr(goals, 5, nchar(goals)))
 
 pattern1 <- paste(team_name_df$dratings_name, collapse = "|")
-matches1 <- str_extract_all(dratings1$teams, pattern1)
-dratings1$away_team <- sapply(matches1, function(x) x[1])
-dratings1$home_team <- sapply(matches1, function(x) x[2])
+matches1 <- str_extract_all(dratings_epl1$teams, pattern1)
+dratings_epl1$away_team <- sapply(matches1, function(x) x[1])
+dratings_epl1$home_team <- sapply(matches1, function(x) x[2])
 
-dratings_df <- dratings1 %>%
+dratings_epl <- dratings_epl1 %>%
   left_join(., team_name_df, by = join_by("away_team" == "dratings_name")) %>%
   mutate(away_team = xg_name) %>%
   select(-c(api_name, xg_name)) %>%
@@ -245,7 +246,7 @@ epl_final <- epl_odds %>%
   left_join(., xg, by = "game_id") %>%
   rename("home_team" = "home_team.x", "away_team" = "away_team.x") %>%
   select(-c(home_team.y, away_team.y)) %>%
-  left_join(., dratings_df, by = "game_id") %>%
+  left_join(., dratings_epl, by = "game_id") %>%
   rename("home_team" = "home_team.x", "away_team" = "away_team.x") %>%
   select(-c(home_team.y, away_team.y)) %>%
   mutate(away_ml_dk_value_xg = away_ml_xg - prob_dk_away_h2h,
@@ -311,11 +312,11 @@ epl_gt2 <- epl_final %>%
          away_dnb_min_dr = prob_to_odds(away_dnb_dr - .1),
          home_dnb_min_dr = prob_to_odds(home_dnb_dr - .1)) %>%
   select(game_time, away_team_url, away_team, home_team, home_team_url, away_goals_xg, home_goals_xg, away_goals_dr, home_goals_dr,
-         away_ml_dk_value_xg, away_ml_dk_value_dr, away_ml_min_xg,
-         home_ml_dk_value_xg, home_ml_dk_value_dr, home_ml_min_xg,
-         draw_ml_dk_value_xg, draw_ml_dk_value_dr, draw_ml_min_xg,
-         away_dnb_dk_value_xg, away_dnb_dk_value_dr, away_dnb_min_xg,
-         home_dnb_dk_value_xg, home_dnb_dk_value_dr, home_dnb_min_xg,
+         away_ml_dk_value_xg, away_ml_min_xg, away_ml_dk_value_dr, away_ml_min_dr,
+         home_ml_dk_value_xg,home_ml_min_xg,  home_ml_dk_value_dr, home_ml_min_dr,
+         draw_ml_dk_value_xg, draw_ml_min_xg, draw_ml_dk_value_dr, draw_ml_min_dr,
+         away_dnb_dk_value_xg, away_dnb_min_xg, away_dnb_dk_value_dr, away_dnb_min_dr,
+         home_dnb_dk_value_xg, home_dnb_min_xg, home_dnb_dk_value_dr, home_dnb_min_dr,
          btts_yes_dk_value_xg, btts_yes_min_xg,
          btts_no_dk_value_xg, btts_no_min_xg
          ) %>%
@@ -328,19 +329,19 @@ epl_gt2 <- epl_final %>%
               columns = c(away_goals_dr, home_goals_dr),
               id = "dr_proj") %>%
   tab_spanner(label = "Away ML",
-              columns = c(away_ml_dk_value_xg, away_ml_dk_value_dr, away_ml_min_xg),
+              columns = c(away_ml_dk_value_xg, away_ml_min_xg, away_ml_dk_value_dr, away_ml_min_dr),
               id = "away_ml") %>%
   tab_spanner(label = "Home ML",
-              columns = c(home_ml_dk_value_xg, home_ml_dk_value_dr, home_ml_min_xg),
+              columns = c(home_ml_dk_value_xg, home_ml_min_xg, home_ml_dk_value_dr, home_ml_min_dr),
               id = "home_ml") %>%
   tab_spanner(label = "Draw",
-              columns = c(draw_ml_dk_value_xg, draw_ml_dk_value_dr, draw_ml_min_xg),
+              columns = c(draw_ml_dk_value_xg, draw_ml_min_xg, draw_ml_dk_value_dr, draw_ml_min_dr),
               id = "draw") %>%
   tab_spanner(label = "Away DnB",
-              columns = c(away_dnb_dk_value_xg, away_dnb_dk_value_dr, away_dnb_min_xg),
+              columns = c(away_dnb_dk_value_xg, away_dnb_min_xg, away_dnb_dk_value_dr, away_dnb_min_dr),
               id = "away_dnb") %>%
   tab_spanner(label = "Home DnB",
-              columns = c(home_dnb_dk_value_xg, home_dnb_dk_value_dr, home_dnb_min_xg),
+              columns = c(home_dnb_dk_value_xg, home_dnb_min_xg, home_dnb_dk_value_dr, home_dnb_min_dr),
               id = "home_dnb") %>%
   tab_spanner(label = "BTTS Yes",
               columns = c(btts_yes_dk_value_xg, btts_yes_min_xg),
@@ -377,32 +378,11 @@ epl_gt2 <- epl_final %>%
              na_color = "white") %>%
   cols_align(align = "center") %>%
   tab_style(style = cell_borders(sides = "right", style = "dotted"),
-            locations = list(cells_body(columns = 7),
-                             cells_column_labels(columns = 7))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 5),
-                             cells_column_labels(columns = 5))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 9),
-                             cells_column_labels(columns = 9))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 12),
-                             cells_column_labels(columns = 12))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 15),
-                             cells_column_labels(columns = 15))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 18),
-                             cells_column_labels(columns = 18))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 21),
-                             cells_column_labels(columns = 21))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 24),
-                             cells_column_labels(columns = 24))) %>%
-  tab_style(style = cell_borders(sides = "right"),
-            locations = list(cells_body(columns = 26),
-                             cells_column_labels(columns = 26))) %>%
+            locations = list(cells_body(columns = c(7, 11, 15, 19, 23)),
+                             cells_column_labels(columns = c(7, 11, 15, 19, 23)))) %>%
+  tab_style(style = cell_borders(sides = "right", style = "solid"),
+            locations = list(cells_body(columns = c(5, 9, 13, 17, 21, 25, 29, 31)),
+                             cells_column_labels(columns = c(5, 9, 13, 17, 21, 25, 29, 31)))) %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = list(cells_row_groups(),
                              cells_column_spanners())) %>%
@@ -425,3 +405,8 @@ epl_gt2 <- epl_final %>%
 gtsave(epl_gt2, expand = 3000, filename = "EPL.png", vheight = 100, vwidth =3000)
 #gtsave(epl_gt2, filename = "EPL.html")
 
+
+
+# outcomes epl ------------------------------------------------------------
+
+#results_epl <- fb_match_results(country = "ENG", gender = "M", season_end_year = 2024)
