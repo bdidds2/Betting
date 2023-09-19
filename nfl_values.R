@@ -596,7 +596,8 @@ final_gt2 <- final_plays2 %>%
             locations = cells_body(columns = 6)) %>%
   cols_width(ends_with("_diff") ~ px(50),
              "points_dk_over_totals" ~ px(50)) %>%
-  tab_header(nfl_week)
+  tab_header(nfl_week) %>%
+  tab_source_note(source_not = md("Odds provided by **odds-api**; Projections provided by **Action Network**, **DRatings**, **Dimers**, and **OddsShark**"))
 
 ifelse(class(final_gt2) != "try-error",
        gtsave(final_gt2, expand = 100, filename = "NFL_Game_Values.png", vheight = 100, vwidth =1000),
