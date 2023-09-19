@@ -47,6 +47,7 @@ jobs:
             any::nflfastR
             any::nflreadr
             any::gsheet
+            any::ggplot2
 
       - name: Check out repository
         uses: actions/checkout@v3

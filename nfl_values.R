@@ -40,16 +40,16 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
                           name == "Steelers" ~ "PIT",
                           name == "Texans" ~ "HOU",
                           name == "Colts" ~ "IND",
-                          name == "Jaguars" ~ "JAC",
+                          name == "Jaguars" ~ "JAX",
                           name == "Titans" ~ "TEN",
                           name == "Broncos" ~ "DEN",
                           name == "Chiefs" ~ "KC",
-                          name == "Raiders" ~ "LAV",
+                          name == "Raiders" ~ "LV",
                           name == "Chargers" ~ "LAC",
                           name == "Cowboys" ~ "DAL",
                           name == "Giants" ~ "NYG",
                           name == "Eagles" ~ "PHI",
-                          name == "Commanders" ~ "WSH",
+                          name == "Commanders" ~ "WAS",
                           name == "Bears" ~ "CHI",
                           name == "Lions" ~ "DET",
                           name == "Packers" ~ "GB",
@@ -586,7 +586,8 @@ final_gt2 <- final_plays2 %>%
              na_color = "white") %>%
   cols_hide(c(actionnetwork_home_spread, dimers_home_spread, oddsshark_home_spread, home_spread_dr,
               avg_book_spread_text)) %>%
-  gt_img_rows(columns = c("away_team_icon", "home_team_icon")) %>%
+  gt_img_rows(columns = "away_team_icon") %>%
+  gt_img_rows(columns = "home_team_icon") %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_row_groups()) %>%
   tab_style(style = cell_borders(sides = "left", style = "dotted"),

@@ -14,6 +14,7 @@ library(nflfastR)
 library(png)
 library(webshot2)
 library(gsheet)
+library(ggplot2)
 #library(xml2)
 #library(gsheet)
 #library(purrr)
@@ -549,7 +550,7 @@ final_fp <- try({final_df %>%
     left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("player_team" == "team_abbr")) %>%
     mutate(player_team = team_logo_espn) %>%
     select(-team_logo_espn) %>%
-    arrange(play, desc(points_dk_over)) %>%
+    arrange(play, desc(point_dk_over)) %>%
     group_by(play) %>%
     #gt(rowname_col = "player") %>%
     gt() %>%
@@ -628,7 +629,9 @@ final_fp <- try({final_df %>%
 ifelse(ciely_week == nfl_week_int & class(values_gt) != "try-error",
        gtsave(values_gt, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth =1000),
        ifelse(ciely_week != nfl_week_int & class(final_fp) != "try-error",
-       gtsave(final_fp, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth =1000), NA))
+       gtsave(final_fp, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth =1000), 
+       ggsave(filename = "NFL_Player_Prop_Values.png", 
+              plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "No Values", size = 20) + theme_void())))
 
 
 # TNF only -----------------------------------------------------------------
