@@ -124,6 +124,7 @@ content_nfl <- fromJSON(content(response_nfl, "text")) %>%
 
 nfl_week_raw <- unique(content_nfl %>% filter(week_filter == 1) %>% select(week)) %>% pull()
 nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
+nfl_week_int <- nfl_week %>% gsub("[^0-9]", "", .) %>% as.integer()
 
 standard_plays_long <- content_nfl %>% filter(week_filter == 1) %>%
   clean_names() %>%
@@ -607,9 +608,15 @@ ifelse(class(final_gt2) != "try-error",
 
 # nfl outcomes ------------------------------------------------------------
 
-outcomes_nfl_raw <- load_schedules(2023)
-outcomes_nfl <- outcomes_nfl_raw %>%
-  filter(!is.na(away_score)) %>%
-  select(c(season, week, away_team, home_team, away_score, home_score, result, total)) %>%
-  mutate(game_id = paste0(away_team, " - ", home_team)) %>%
-  as.data.frame()
+#outcomes_nfl_raw <- load_schedules(2023)
+#outcomes_nfl <- outcomes_nfl_raw %>%
+#  filter(!is.na(away_score)) %>%
+#  select(c(season, week, away_team, home_team, away_score, home_score, result, total)) %>%
+#  mutate(game_id = paste0(week, " - ", away_team, " - ", home_team)) %>%
+#  as.data.frame()
+
+write_rds(standard_plays, file = paste0("NFL/", nfl_week, " - predictions.rds"))
+  
+
+#performance_nfl <- outcomes_nfl %>%
+#  left_join(., dratings_df %>% mutate(game_id = paste0(nfl_week_int, " - ", game_id)), by = "game_id")
