@@ -15,6 +15,7 @@ library(openxlsx)
 library(purrr)
 library(gtExtras)
 library(nflfastR)
+library(readr)
 
 
 

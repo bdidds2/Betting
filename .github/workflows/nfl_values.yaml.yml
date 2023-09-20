@@ -48,6 +48,7 @@ jobs:
             any::nflreadr
             any::gsheet
             any::ggplot2
+            any::readr
 
       - name: Check out repository
         uses: actions/checkout@v3
