@@ -171,7 +171,7 @@ prob_to_spread <- function(x){
 
 #test %>% rowwise() %>% mutate(number2 = prob_to_spread(number)) %>% ungroup()
 
-actionnetwork_url <- "https://images.actionnetwork.com/blog/2023/09/Week-2-Pick-Em-Confidence-2023.xlsx"
+actionnetwork_url <- "https://images.actionnetwork.com/blog/2023/09/Week-3-Pick-Em-Confidence-2023.xlsx"
 actionnetwork_df <- read.xlsx(actionnetwork_url) %>%
   clean_names() %>%
   select(-c(tm)) %>%
