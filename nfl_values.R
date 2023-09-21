@@ -124,6 +124,7 @@ content_nfl <- fromJSON(content(response_nfl, "text")) %>%
 
 nfl_week_raw <- unique(content_nfl %>% filter(week_filter == 1) %>% select(week)) %>% pull()
 nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
+nfl_week_int <- nfl_week %>% gsub("[^0-9]", "", .) %>% as.integer()
 
 standard_plays <- content_nfl %>% filter(week_filter == 1) %>%
   clean_names() %>%
@@ -169,9 +170,11 @@ prob_to_spread <- function(x){
   return(closest_value)
 }
 
-#test %>% rowwise() %>% mutate(number2 = prob_to_spread(number)) %>% ungroup()
 
-actionnetwork_url <- "https://images.actionnetwork.com/blog/2023/09/Week-3-Pick-Em-Confidence-2023.xlsx"
+actionnetwork_url <- "https://images.actionnetwork.com/blog/2023/09/Week-2-Pick-Em-Confidence-2023.xlsx"
+actionnetwork_url <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1_frMB6ICtpAxl1r7Vs1suQ625R-ra8oDjII9rr91M1I", format = "csv"), stringsAsFactors = FALSE) %>% pull()
+
+
 actionnetwork_df <- read.xlsx(actionnetwork_url) %>%
   clean_names() %>%
   select(-c(tm)) %>%
@@ -192,6 +195,37 @@ actionnetwork_df <- read.xlsx(actionnetwork_url) %>%
 split_string_pm <- function(x) {
   str_split(x, "PM")[[1]]
 }
+
+athletic_raw <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1RQCAGCBGofH6RauXLfumxs1wkgYXw-sFVRr-ZPpdQKc", format = "csv"), stringsAsFactors = FALSE)
+
+athletic_week <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1RQCAGCBGofH6RauXLfumxs1wkgYXw-sFVRr-ZPpdQKc", format = "csv"), stringsAsFactors = FALSE)[1,1]
+
+
+athletic_df <- athletic_raw %>%
+  select(c(team, xmov, xtot, xwin)) %>%
+  mutate(xwin = as.integer(gsub("%", "", xwin))/100,
+         game_number = ceiling(row_number()/2)) %>%
+  left_join(., team_table, by = c("team" = "name")) %>%
+  mutate(team = abbr) %>%
+  select(-c(location, full_name, abbr)) %>%
+  pivot_longer(cols = c(xmov, xtot, xwin), names_to = "stat_name", values_to = "stat_num") %>%
+  filter(!is.na(stat_num)) %>%
+  pivot_wider(names_from = stat_name , values_from = c(team, stat_num)) %>%
+  unnest_wider(col = team_xwin, names_sep = "_") %>%
+  rename("away_team" = "team_xwin_1", "home_team" = "team_xwin_2") %>%
+  unnest_wider(col = stat_num_xwin, names_sep = "_") %>%
+  rename("away_prob" = "stat_num_xwin_1", "home_prob" = "stat_num_xwin_2") %>%
+  unnest_wider(col = team_xmov, names_sep = "_") %>%
+  unnest_wider(col = team_xtot, names_sep = "_") %>%
+  unnest_wider(col = stat_num_xmov, names_sep = "_") %>%
+  unnest_wider(col = stat_num_xtot, names_sep = "_") %>%
+  rename("total" = "stat_num_xtot_1") %>%
+  mutate(home_spread = ifelse(home_prob > away_prob, stat_num_xmov_1, -stat_num_xmov_1),
+         game_id = paste0(away_team, " - ", home_team),
+         home_points = (total / 2) - (home_spread / 2),
+         away_points = (total / 2) + (home_spread / 2)) %>%
+  select(game_id, away_team, home_team, away_prob, home_prob, away_points, home_points, total)
+
 
 #oddstrader_url <- "https://www.oddstrader.com/nfl/picks/"
 #oddstrader_picks <- read_html(oddstrader_url) %>%
@@ -361,135 +395,7 @@ dratings_df <- dratings1 %>%
 
 
 
-# final standard play table -------------------------------------------------------------
-
-final_plays <- standard_plays %>%
-  left_join(., dimers_picks, by = c("home_team", "away_team")) %>%
-  left_join(., actionnetwork_df, by = c("home_team", "away_team")) %>%
-  left_join(., oddsshark_df2, by = c("home_team", "away_team")) %>%
-  left_join(., dratings_df, by = c("home_team", "away_team")) %>%
-  #left_join(., team_table, by = c("home_team" = "full_name")) %>%
- # rename("game_id" = "game_id.x") %>%
-  select(-c(contains("abbr"), contains("game_id."))) %>%
- # left_join(., team_table, by = c("away_team" = "full_name")) %>%
-#  mutate(away_team = abbr) %>%
-#  select(-c(location, name, abbr)) %>%
-  mutate(avg_home_spread = round((dimers_home_spread + actionnetwork_home_spread + oddsshark_home_spread + home_spread_dr) / 4, 1),
-         avg_away_spread = round((dimers_away_spread + actionnetwork_away_spread + oddsshark_away_spread + away_spread_dr) / 4, 1),
-         avg_home_prob = round((dimers_home_prob + actionnetwork_home_prob + oddsshark_home_prob + home_ml_dr) / 4, 1),
-         avg_away_prob = round((dimers_away_prob + actionnetwork_away_prob + oddsshark_away_prob + away_ml_dr) / 4, 1),
-         avg_book_spread = round((points_dk_home_spreads + points_fd_home_spreads) / 2, 1),
-         avg_book_spread_text = paste0(home_team, " ", ifelse(points_dk_home_spreads < 0, as.character(points_dk_home_spreads), paste0("+", as.character(avg_book_spread)))),
-         dimers_home_value = dimers_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         dimers_away_value = dimers_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         actionnetwork_home_value = actionnetwork_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         actionnetwork_away_value = actionnetwork_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         oddsshark_home_value = oddsshark_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         oddsshark_away_value = oddsshark_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         dratings_home_value = home_ml_dr - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         dratings_away_value = away_ml_dr - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         dimers_home_value_flag = ifelse(dimers_home_value > .04, 1, 0),
-         dimers_away_value_flag = ifelse(dimers_away_value > .04, 1, 0),
-         actionnetwork_home_value_flag = ifelse(actionnetwork_home_value > .04, 1, 0),
-         actionnetwork_away_value_flag = ifelse(actionnetwork_away_value > .04, 1, 0),
-         oddsshark_home_value_flag = ifelse(oddsshark_home_value > .04, 1, 0),
-         oddsshark_away_value_flag = ifelse(oddsshark_away_value > .04, 1, 0),
-         dratings_home_value_flag = ifelse(dratings_home_value > .04, 1, 0),
-         dratings_away_value_flag = ifelse(dratings_away_value > .04, 1, 0),
-         avg_home_value = avg_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         avg_away_value = avg_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         avg_home_value_flag = ifelse(avg_home_value > .04, 1, 0),
-         avg_away_value_flag = ifelse(avg_away_value > .04, 1, 0),
-         game_time = paste(weekdays(commence_time), format(commence_time, "%I:%M%p")),
-         game_time = gsub(" 0", " ", game_time))
-
-#final_gt <- final_plays %>%
-#  select(c(game_time, away_team, home_team, avg_book_spread_text,
-#           actionnetwork_away_prob, actionnetwork_away_value, actionnetwork_away_spread,
-#           oddsshark_away_prob, oddsshark_away_value, oddsshark_away_spread,
-#           dimers_away_prob, dimers_away_value, dimers_away_spread,
-#           away_ml_dr, dratings_away_value, away_spread_dr,
-#           avg_away_prob, avg_away_value, avg_away_spread,
-#           actionnetwork_home_prob, actionnetwork_home_value, actionnetwork_home_spread,
-#           oddsshark_home_prob, oddsshark_home_value, oddsshark_home_spread,
-#           dimers_home_prob, dimers_home_value, dimers_home_spread,
-#           home_ml_dr, dratings_home_value, home_spread_dr,
-#           avg_home_prob, avg_home_value, avg_home_spread,
-#           actionnetwork_home_value_flag, actionnetwork_away_value_flag,
-#           oddsshark_home_value_flag, oddsshark_away_value_flag,
-#           dimers_home_value_flag, dimers_away_value_flag,
-#           dratings_home_value_flag, dratings_away_value_flag,
-#           avg_home_value_flag, avg_away_value_flag)) %>%
-#  group_by(game_time) %>%
-#  gt() %>%
-#  tab_spanner(label = "Action Network",
-#              columns = c(actionnetwork_away_prob, actionnetwork_away_value, actionnetwork_away_spread),
-#              id = "actionnetwork_away") %>%
-#  tab_spanner(label = "OddsShark",
-#              columns = c(oddsshark_away_prob, oddsshark_away_value, oddsshark_away_spread),
-#              id = "oddsshark_away") %>%
-#  tab_spanner(label = "Dimers",
-#              columns = c(dimers_away_prob, dimers_away_value, dimers_away_spread),
-#              id = "dimers_away") %>%
-#  tab_spanner(label = "DRatings",
-#              columns = c(away_ml_dr, dratings_away_value, away_spread_dr),
-#              id = "dr_away") %>%
-#  tab_spanner(label = "Consensus",
-#              columns = c(avg_away_prob, avg_away_value, avg_away_spread),
-#              id = "avg_away") %>%
-#  tab_spanner(label = "AWAY",
-#              spanners = c("actionnetwork_away", "oddsshark_away", "dimers_away", "dr_away", "avg_away")) %>%
-#  tab_spanner(label = "Action Network",
-#              columns = c(actionnetwork_home_prob, actionnetwork_home_value, actionnetwork_home_spread),
-#              id = "actionnetwork_home") %>%
-#  tab_spanner(label = "OddsShark",
-#              columns = c(oddsshark_home_prob, oddsshark_home_value, oddsshark_home_spread),
-#              id = "oddsshark_home") %>%
-#  tab_spanner(label = "Dimers",
-#              columns = c(dimers_home_prob, dimers_home_value, dimers_home_spread),
-#              id = "dimers_home") %>%
-#  tab_spanner(label = "DRatings",
-#              columns = c(home_ml_dr, dratings_home_value, home_spread_dr),
-#              id = "dr_home") %>%
-#  tab_spanner(label = "Consensus",
-#              columns = c(avg_home_prob, avg_home_value, avg_home_spread),
-#              id = "avg_home") %>%
-#  tab_spanner(label = "HOME",
-#              spanners = c("actionnetwork_home", "oddsshark_home", "dimers_home", "dr_home", "avg_home")) %>%
-#  cols_label(game_time ~ "", away_team ~ "AWAY", home_team ~ "HOME", avg_book_spread_text ~ "Spread",
-#             actionnetwork_home_prob ~ "Win Prob", actionnetwork_home_value ~ "Value", actionnetwork_home_spread ~ "Spread",
-#             oddsshark_home_prob ~ "Win Prob", oddsshark_home_value ~ "Value", oddsshark_home_spread ~ "Spread",
-#             dimers_home_prob ~ "Win Prob", dimers_home_value ~ "Value", dimers_home_spread ~ "Spread",
-#             home_ml_dr ~ "Win Prob", dratings_home_value ~ "Value", home_spread_dr ~ "Spread",
-#             avg_home_prob ~ "Win Prob", avg_home_value ~ "Value", avg_home_spread ~ "Spread",
-#             actionnetwork_away_prob ~ "Win Prob", actionnetwork_away_value ~ "Value", actionnetwork_away_spread ~ "Spread",
-#             oddsshark_away_prob ~ "Win Prob", oddsshark_away_value ~ "Value", oddsshark_away_spread ~ "Spread",
-#             dimers_away_prob ~ "Win Prob", dimers_away_value ~ "Value", dimers_away_spread ~ "Spread",
-#             away_ml_dr ~ "Win Prob", dratings_away_value ~ "Value", away_spread_dr ~ "Spread",
-#             avg_away_prob ~ "Win Prob", avg_away_value ~ "Value", avg_away_spread ~ "Spread") %>%
-#  fmt_percent(columns = c(actionnetwork_home_prob, oddsshark_home_prob, dimers_home_prob, home_ml_dr, avg_home_prob,
-#                          actionnetwork_away_prob, oddsshark_away_prob, dimers_away_prob, away_ml_dr, avg_away_prob), decimals = 0) %>%
-#  fmt_percent(columns = c(actionnetwork_home_value, oddsshark_home_value, dimers_home_value, dratings_home_value, avg_home_value,
-#                          actionnetwork_away_value, oddsshark_away_value, dimers_away_value, dratings_away_value, avg_away_value), decimals = 0, force_sign = TRUE) %>%
-#  fmt_number(columns = c(actionnetwork_home_spread, oddsshark_home_spread, dimers_home_spread, home_spread_dr, avg_home_spread,
-#                         actionnetwork_away_spread, oddsshark_away_spread, dimers_away_spread, away_spread_dr, avg_away_spread), decimals = 1, force_sign = TRUE) %>%
-#  cols_align(columns = -game_time, align = "center") %>%
-#  data_color(columns = c(actionnetwork_home_value, oddsshark_home_value, dimers_home_value, dratings_home_value, avg_home_value,
-#                         actionnetwork_away_value, oddsshark_away_value, dimers_away_value, dratings_away_value, avg_away_value),
-#             domain = c(0, .4),
-#             palette = c("white", "green"),
-#             na_color = "white") %>%
-#  cols_hide(c(actionnetwork_home_prob, oddsshark_home_prob, dimers_home_prob, home_ml_dr, avg_home_prob,
-#              actionnetwork_away_prob, oddsshark_away_prob, dimers_away_prob, away_ml_dr, avg_away_prob,
-#              actionnetwork_home_value_flag, actionnetwork_away_value_flag,
-#              oddsshark_home_value_flag, oddsshark_away_value_flag,
-#              dimers_home_value_flag, dimers_away_value_flag,
-#              dratings_home_value_flag, dratings_away_value_flag,
-#              avg_home_value_flag, avg_away_value_flag))#
-
-
-
-# final play s2 -----------------------------------------------------------
+# final plays -----------------------------------------------------------
 
 
 final_plays2 <- standard_plays %>%
