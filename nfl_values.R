@@ -566,7 +566,7 @@ nfl_game_gt <- nfl_game_data %>%
 
 
 ifelse(class(nfl_game_gt) != "try-error",
-       gtsave(nfl_game_gt, expand = 2000, filename = "NFL_Game_Values.png", vheight = 300, vwidth =1100),
+       gtsave(nfl_game_gt, expand = 1000, filename = "NFL_Game_Values.png", vheight = 300, vwidth =1700),
        NA)
 
 
