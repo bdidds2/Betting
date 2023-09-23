@@ -441,6 +441,7 @@ nfl_game_data <- bind_rows(odds_df, predictions_df) %>%
   rename("home_team_icon" = "team_logo_espn") %>%
   select_if(~!all(is.na(.))) %>%
   mutate(#action
+<<<<<<< HEAD
     favorite_spread_delta_home_action = ifelse("home_spread_action" %in% names(.) & favorite_team == home_team, home_spread_action - home_spread_dk, NA),
     favorite_spread_delta_away_action = ifelse("away_spread_action" %in% names(.) & favorite_team == away_team, away_spread_action - away_spread_dk, NA),
     favorite_spread_delta_action = ifelse(is.na(favorite_spread_delta_home_action), favorite_spread_delta_away_action, favorite_spread_delta_home_action),
@@ -460,6 +461,27 @@ nfl_game_data <- bind_rows(odds_df, predictions_df) %>%
     favorite_spread_delta_home_shark = ifelse("home_spread_shark" %in% names(.) & favorite_team == home_team, home_spread_shark - home_spread_dk, NA),
     favorite_spread_delta_away_shark = ifelse("away_spread_shark" %in% names(.) & favorite_team == away_team, away_spread_shark - away_spread_dk, NA),
     favorite_spread_delta_shark = ifelse(is.na(favorite_spread_delta_home_shark), favorite_spread_delta_away_shark, favorite_spread_delta_home_shark)) %>%
+=======
+         favorite_spread_delta_home_action = ifelse("home_spread_action" %in% names(.) & favorite_team == home_team, home_spread_action - home_spread_dk, NA),
+         favorite_spread_delta_away_action = ifelse("away_spread_action" %in% names(.) & favorite_team == away_team, away_spread_action - away_spread_dk, NA),
+         favorite_spread_delta_action = ifelse(is.na(favorite_spread_delta_home_action), favorite_spread_delta_away_action, favorite_spread_delta_home_action),
+         #athletic
+         favorite_spread_delta_home_athletic = ifelse("home_spread_athletic" %in% names(.) & favorite_team == home_team, home_spread_athletic - home_spread_dk, NA),
+         favorite_spread_delta_away_athletic = ifelse("away_spread_athletic" %in% names(.) & favorite_team == away_team, away_spread_athletic - away_spread_dk, NA),
+         favorite_spread_delta_athletic = ifelse(is.na(favorite_spread_delta_home_athletic), favorite_spread_delta_away_athletic, favorite_spread_delta_home_athletic),
+         #dratings
+         favorite_spread_delta_home_dratings = ifelse("home_spread_dratings" %in% names(.) & favorite_team == home_team, home_spread_dratings - home_spread_dk, NA),
+         favorite_spread_delta_away_dratings = ifelse("away_spread_dratings" %in% names(.) & favorite_team == away_team, away_spread_dratings - away_spread_dk, NA),
+         favorite_spread_delta_dratings = ifelse(is.na(favorite_spread_delta_home_dratings), favorite_spread_delta_away_dratings, favorite_spread_delta_home_dratings),
+         #dimers
+         favorite_spread_delta_home_dimers = ifelse("home_spread_dimers" %in% names(.) & favorite_team == home_team, home_spread_dimers - home_spread_dk, NA),
+         favorite_spread_delta_away_dimers = ifelse("away_spread_dimers" %in% names(.) & favorite_team == away_team, away_spread_dimers - away_spread_dk, NA),
+         favorite_spread_delta_dimers = ifelse(is.na(favorite_spread_delta_home_dimers), favorite_spread_delta_away_dimers, favorite_spread_delta_home_dimers),
+         #oddsshark
+         favorite_spread_delta_home_shark = ifelse("home_spread_shark" %in% names(.) & favorite_team == home_team, home_spread_shark - home_spread_dk, NA),
+         favorite_spread_delta_away_shark = ifelse("away_spread_shark" %in% names(.) & favorite_team == away_team, away_spread_shark - away_spread_dk, NA),
+         favorite_spread_delta_shark = ifelse(is.na(favorite_spread_delta_home_shark), favorite_spread_delta_away_shark, favorite_spread_delta_home_shark)) %>%
+>>>>>>> ad2a3286e3277bafc59324b344f19ec5c228b685
   select(!starts_with("favorite_spread_delta_away")) %>%
   select(!starts_with("favorite_spread_delta_home")) %>%
   rowwise() %>%
@@ -486,7 +508,11 @@ spread_delta_count<-5
 short <- c(9,16)
 long <- c(9, 11, 19, 20)
 dotted_line_vector <- if(projection_count == 2 & spread_delta_count == 4) short else long
+<<<<<<< HEAD
 
+=======
+           
+>>>>>>> ad2a3286e3277bafc59324b344f19ec5c228b685
 nfl_game_gt <- nfl_game_data %>%
   group_by(game_time) %>%
   gt() %>%
