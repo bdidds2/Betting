@@ -58,8 +58,7 @@ jobs:
 
       - name: Commit results
         run: |
-          git pull origin master
-          git push origin master
+          git pull origin
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add NFL_Game_Values.png
