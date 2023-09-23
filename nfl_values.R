@@ -126,7 +126,12 @@ nfl_week_raw <- unique(content_nfl %>% filter(week_filter == 1) %>% select(week)
 nfl_week <- toupper(gsub(pattern = "_", replacement = " ", x = nfl_week_raw))
 nfl_week_int <- nfl_week %>% gsub("[^0-9]", "", .) %>% as.integer()
 
-standard_plays <- content_nfl %>% filter(week_filter == 1) %>%
+
+
+# odds df -----------------------------------------------------------------
+
+
+odds_df <- content_nfl %>% filter(week_filter == 1) %>%
   clean_names() %>%
   mutate(markets_outcomes_name = case_when(markets_outcomes_name == away_team ~ "away",
                                            markets_outcomes_name == home_team ~ "home",
@@ -137,8 +142,12 @@ standard_plays <- content_nfl %>% filter(week_filter == 1) %>%
          prob = american_to_prob(markets_outcomes_price)) %>%
   select(-c(id, sport_key, sport_title, last_update, markets_last_update, title)) %>%
   rename("market" = "markets_key", "outcome" = "markets_outcomes_name", "odds" = "markets_outcomes_price", "points" = "markets_outcomes_point", "book" = "key") %>%
-  pivot_wider(names_from = c(book, outcome, market), values_from = c(prob, odds, points)) %>%
-  select(-c(points_fd_away_h2h, points_fd_home_h2h, points_dk_away_h2h, points_dk_home_h2h)) %>%
+  select(-c(odds)) %>%
+  pivot_wider(names_from = c(outcome, market), values_from = c(prob, points)) %>%
+  select(-c(week_filter, prob_away_spreads, prob_home_spreads, prob_over_totals, prob_under_totals, points_under_totals)) %>%
+  rename("home_prob" = "prob_home_h2h", "away_prob" = "prob_away_h2h", "home_spread" = "points_home_spreads", "away_spread" = "points_away_spreads", 
+         "total" = "points_over_totals", "home_points" = "points_home_h2h", "away_points" = "points_away_h2h", "site" = "book") %>%
+  mutate(type = "book") %>%
   left_join(., team_table, by = c("home_team" = "full_name")) %>%
   mutate(home_team = abbr) %>%
   select(-c(location, name, abbr)) %>%
@@ -147,10 +156,12 @@ standard_plays <- content_nfl %>% filter(week_filter == 1) %>%
   select(-c(location, name, abbr)) %>%
   mutate(game_id = paste0(away_team, " - ", home_team)) %>%
   select(c(commence_time, week, game_id, everything())) %>%
-  select(-week_filter)
+  mutate(home_points = (total / 2) - (home_spread / 2),
+         away_points = (total / 2) - (away_spread / 2)) %>%
+  select(c(commence_time, week, type, site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total))
 
 
-# predictions from web ----------------------------------------------------
+# functions for data manipulation ----------------------------------------------------
 
 spread_to_prob_data <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/11SFGATUQL3nGYuTULjfVvWme-XxWUO2snfTjX14Mt7o/edit#gid=893808082", format = "csv"), stringsAsFactors = FALSE) %>%
   clean_names()
@@ -159,7 +170,7 @@ spread_to_prob <- function(x){
   differences <- abs(spread_to_prob_data$line - x)
   closest_index <- which.min(differences)
   closest_value <- spread_to_prob_data$prob[closest_index]
- # prob <- spread_to_prob_data[spread_to_prob_data$line %in% x, ]$prob
+  # prob <- spread_to_prob_data[spread_to_prob_data$line %in% x, ]$prob
   return(closest_value)
 }
 
@@ -170,8 +181,17 @@ prob_to_spread <- function(x){
   return(closest_value)
 }
 
+split_string_space <- function(x) {
+  str_split(x, " ")[[1]]
+}
 
-actionnetwork_url <- "https://images.actionnetwork.com/blog/2023/09/Week-2-Pick-Em-Confidence-2023.xlsx"
+split_string_pm <- function(x) {
+  str_split(x, "PM")[[1]]
+}
+
+# action network ----------------------------------------------------------
+
+
 actionnetwork_url <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1_frMB6ICtpAxl1r7Vs1suQ625R-ra8oDjII9rr91M1I", format = "csv"), stringsAsFactors = FALSE) %>% pull()
 
 
@@ -190,50 +210,14 @@ actionnetwork_df <- read.xlsx(actionnetwork_url) %>%
   select(-game_number) %>%
   rename("away_team" = "team_away_team", "home_team" = "team_home_team", "actionnetwork_away_spread" = "projection_away_team", "actionnetwork_home_spread" = "projection_home_team", "actionnetwork_away_prob" = "actionnetwork_prob_away_team", "actionnetwork_home_prob" = "actionnetwork_prob_home_team") %>%
   mutate(game_id = paste0(away_team, " - ", home_team)) %>%
-  select(game_id, everything())
-
-split_string_pm <- function(x) {
-  str_split(x, "PM")[[1]]
-}
-
-athletic_raw <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1RQCAGCBGofH6RauXLfumxs1wkgYXw-sFVRr-ZPpdQKc", format = "csv"), stringsAsFactors = FALSE)
-
-athletic_week <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1RQCAGCBGofH6RauXLfumxs1wkgYXw-sFVRr-ZPpdQKc", format = "csv"), stringsAsFactors = FALSE)[1,1]
+  select(game_id, everything()) %>%
+  rename("away_spread" = "actionnetwork_away_spread", "home_spread" = "actionnetwork_home_spread", "away_prob" = "actionnetwork_away_prob", "home_prob" = "actionnetwork_home_prob") %>%
+  mutate(site = "action") %>%
+  select(site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread)
 
 
-athletic_df <- athletic_raw %>%
-  select(c(team, xmov, xtot, xwin)) %>%
-  mutate(xwin = as.integer(gsub("%", "", xwin))/100,
-         game_number = ceiling(row_number()/2)) %>%
-  left_join(., team_table, by = c("team" = "name")) %>%
-  mutate(team = abbr) %>%
-  select(-c(location, full_name, abbr)) %>%
-  pivot_longer(cols = c(xmov, xtot, xwin), names_to = "stat_name", values_to = "stat_num") %>%
-  filter(!is.na(stat_num)) %>%
-  pivot_wider(names_from = stat_name , values_from = c(team, stat_num)) %>%
-  unnest_wider(col = team_xwin, names_sep = "_") %>%
-  rename("away_team" = "team_xwin_1", "home_team" = "team_xwin_2") %>%
-  unnest_wider(col = stat_num_xwin, names_sep = "_") %>%
-  rename("away_prob" = "stat_num_xwin_1", "home_prob" = "stat_num_xwin_2") %>%
-  unnest_wider(col = team_xmov, names_sep = "_") %>%
-  unnest_wider(col = team_xtot, names_sep = "_") %>%
-  unnest_wider(col = stat_num_xmov, names_sep = "_") %>%
-  unnest_wider(col = stat_num_xtot, names_sep = "_") %>%
-  rename("total" = "stat_num_xtot_1") %>%
-  mutate(home_spread = ifelse(home_prob > away_prob, stat_num_xmov_1, -stat_num_xmov_1),
-         game_id = paste0(away_team, " - ", home_team),
-         home_points = (total / 2) - (home_spread / 2),
-         away_points = (total / 2) + (home_spread / 2)) %>%
-  select(game_id, away_team, home_team, away_prob, home_prob, away_points, home_points, total)
+# oddsshark ---------------------------------------------------------------
 
-
-#oddstrader_url <- "https://www.oddstrader.com/nfl/picks/"
-#oddstrader_picks <- read_html(oddstrader_url) %>%
-#  html_nodes(xpath = '//*[@id="PageHandler"]/div/div[1]/div/section/div[1]/div[4]/div[2]/div[2]/div') %>%
-#  html_text() %>%
-#  strsplit("PM") %>%
-#  unlist() %>%
-#  data.frame(Strings = .)
 
 oddsshark_url <- "https://www.oddsshark.com/nfl/computer-picks"
 oddsshark_count <- read_html(oddsshark_url) %>%
@@ -281,23 +265,20 @@ oddsshark_df2 <- oddsshark_df %>%
          home_team = abbr.y,
          game_id = paste0(away_team, " - ", home_team)) %>%
   select(game_id, everything()) %>%
-  select(-c(abbr.x,))
-
-#oddsshark_prob_df <- data.frame()
-
-#for (n in 1:nrow(oddsshark_df2)) {
-#  probi <- spread_to_prob(oddsshark_df2$oddsshark_away_spread[n])
-#  result <- data.frame(prob = probi)
-#  oddsshark_prob_df <- rbind(oddsshark_prob_df, result)
-#}
+  select(-c(abbr.x,abbr.y)) %>%
+  rename("away_points" = "oddsshark_away_score", "home_points" = "oddsshark_home_score", "home_spread" = "oddsshark_home_spread", "away_spread" = "oddsshark_away_spread", "home_prob" = "oddsshark_home_prob", "away_prob" = "oddsshark_away_prob") %>%
+  mutate(total = away_points+home_points,
+         site = "shark") %>%
+  select(site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total)
 
 
-split_string_space <- function(x) {
-  str_split(x, " ")[[1]]
-}
+
+
+# dimers ------------------------------------------------------------------
+
 
 dimers_url <- "https://www.dimers.com/bet-hub/nfl/schedule"
-dimers_picks <- read_html(dimers_url) %>%
+dimers_df <- read_html(dimers_url) %>%
   html_nodes(xpath = '/html/body/app-root/main/app-fixture-page/div[1]/app-match-list-block/div/div[2]') %>%
   html_text() %>%
   strsplit(",") %>%           # Split by comma
@@ -326,9 +307,10 @@ dimers_picks <- read_html(dimers_url) %>%
          home_team = abbr.y) %>%
   select(-c(abbr.x, abbr.y)) %>%
   mutate(game_id = paste0(away_team, " - ", home_team)) %>%
-  select(game_id, everything())
-
-
+  select(game_id, everything()) %>%
+  rename("away_prob" = "dimers_away_prob", "home_prob" = "dimers_home_prob", "away_spread" = "dimers_away_spread", "home_spread" = "dimers_home_spread") %>%
+  mutate(site = "dimers") %>%
+  select(site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread)
 
 
 
@@ -391,126 +373,201 @@ dratings_df <- dratings1 %>%
          total_points_dr = away_points_dr + home_points_dr,
          home_spread_dr = away_points_dr - home_points_dr,
          away_spread_dr = -home_spread_dr) %>%
-  select(c(game_id, away_team, home_team, away_ml_dr, home_ml_dr, away_points_dr, home_points_dr, total_points_dr, away_spread_dr, home_spread_dr))
+  select(c(game_id, away_team, home_team, away_ml_dr, home_ml_dr, away_points_dr, home_points_dr, total_points_dr, away_spread_dr, home_spread_dr)) %>%
+  rename("away_prob" = "away_ml_dr", "home_prob" = "home_ml_dr", "away_points" = "away_points_dr", "home_points" = "home_points_dr", "away_spread" = "away_spread_dr", "home_spread" = "home_spread_dr", "total" = "total_points_dr") %>%
+  mutate(site = "dratings") %>%
+  select(site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total)
+
+
+# the athletic ------------------------------------------------------------
+
+
+
+athletic_raw <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1RQCAGCBGofH6RauXLfumxs1wkgYXw-sFVRr-ZPpdQKc", format = "csv"), stringsAsFactors = FALSE)
+athletic_week <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1RQCAGCBGofH6RauXLfumxs1wkgYXw-sFVRr-ZPpdQKc", format = "csv"), stringsAsFactors = FALSE)[1,1]
+
+
+athletic_df <- athletic_raw %>%
+  select(c(team, xmov, xtot, xwin)) %>%
+  mutate(xwin = as.integer(gsub("%", "", xwin))/100,
+         game_number = ceiling(row_number()/2)) %>%
+  left_join(., team_table, by = c("team" = "name")) %>%
+  mutate(team = abbr) %>%
+  select(-c(location, full_name, abbr)) %>%
+  pivot_longer(cols = c(xmov, xtot, xwin), names_to = "stat_name", values_to = "stat_num") %>%
+  filter(!is.na(stat_num)) %>%
+  pivot_wider(names_from = stat_name , values_from = c(team, stat_num)) %>%
+  unnest_wider(col = team_xwin, names_sep = "_") %>%
+  rename("away_team" = "team_xwin_1", "home_team" = "team_xwin_2") %>%
+  unnest_wider(col = stat_num_xwin, names_sep = "_") %>%
+  rename("away_prob" = "stat_num_xwin_1", "home_prob" = "stat_num_xwin_2") %>%
+  unnest_wider(col = team_xmov, names_sep = "_") %>%
+  unnest_wider(col = team_xtot, names_sep = "_") %>%
+  unnest_wider(col = stat_num_xmov, names_sep = "_") %>%
+  unnest_wider(col = stat_num_xtot, names_sep = "_") %>%
+  rename("total" = "stat_num_xtot_1") %>%
+  mutate(home_spread = ifelse(home_prob > away_prob, stat_num_xmov_1, -stat_num_xmov_1),
+         game_id = paste0(away_team, " - ", home_team),
+         home_points = (total / 2) - (home_spread / 2),
+         away_points = (total / 2) + (home_spread / 2)) %>%
+  mutate(away_spread = -home_spread,
+         site = "athletic") %>%
+  select(site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total) %>%
+  as.data.frame()
+
 
 
 
 # final plays -----------------------------------------------------------
 
+predictions_df <- bind_rows(actionnetwork_df, oddsshark_df2, dimers_df, dratings_df, athletic_df) %>%
+  mutate(type = "projection") %>%
+  left_join(., odds_df %>% select(game_id, commence_time, week), by = "game_id", relationship = "many-to-many") %>%
+  select(c(commence_time, week, type, site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total))
 
-final_plays2 <- standard_plays %>%
-  mutate(home_points_dk = (points_dk_over_totals / 2) - (points_dk_home_spreads / 2),
-         away_points_dk = (points_dk_over_totals / 2) - (points_dk_away_spreads / 2)) %>%
-  left_join(., dimers_picks, by = c("home_team", "away_team")) %>%
-  left_join(., actionnetwork_df, by = c("home_team", "away_team")) %>%
-  left_join(., oddsshark_df2, by = c("home_team", "away_team")) %>%
-  left_join(., dratings_df, by = c("home_team", "away_team")) %>%
-  select(-c(contains("abbr"), contains("game_id."))) %>%
-  mutate(avg_home_spread = round((dimers_home_spread + actionnetwork_home_spread + oddsshark_home_spread + home_spread_dr) / 4, 1),
-         avg_away_spread = round((dimers_away_spread + actionnetwork_away_spread + oddsshark_away_spread + away_spread_dr) / 4, 1),
-         avg_home_prob = round((dimers_home_prob + actionnetwork_home_prob + oddsshark_home_prob + home_ml_dr) / 4, 1),
-         avg_away_prob = round((dimers_away_prob + actionnetwork_away_prob + oddsshark_away_prob + away_ml_dr) / 4, 1),
-         avg_book_spread = points_dk_home_spreads, #round((points_dk_home_spreads + points_fd_home_spreads) / 2, 1),
-         avg_book_spread_text = paste0(home_team, " ", ifelse(points_dk_home_spreads < 0, as.character(points_dk_home_spreads), paste0("+", as.character(avg_book_spread)))),
-         dimers_home_value = dimers_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         dimers_away_value = dimers_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         actionnetwork_home_value = actionnetwork_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         actionnetwork_away_value = actionnetwork_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         oddsshark_home_value = oddsshark_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         oddsshark_away_value = oddsshark_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         dratings_home_value = home_ml_dr - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         dratings_away_value = away_ml_dr - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         dimers_home_value_flag = ifelse(dimers_home_value > .04, 1, 0),
-         dimers_away_value_flag = ifelse(dimers_away_value > .04, 1, 0),
-         actionnetwork_home_value_flag = ifelse(actionnetwork_home_value > .04, 1, 0),
-         actionnetwork_away_value_flag = ifelse(actionnetwork_away_value > .04, 1, 0),
-         oddsshark_home_value_flag = ifelse(oddsshark_home_value > .04, 1, 0),
-         oddsshark_away_value_flag = ifelse(oddsshark_away_value > .04, 1, 0),
-         dratings_home_value_flag = ifelse(dratings_home_value > .04, 1, 0),
-         dratings_away_value_flag = ifelse(dratings_away_value > .04, 1, 0),
-         avg_home_value = avg_home_prob - ((prob_fd_home_h2h + prob_dk_home_h2h) / 2),
-         avg_away_value = avg_away_prob - ((prob_fd_away_h2h + prob_dk_away_h2h) / 2),
-         avg_home_value_flag = ifelse(avg_home_value > .04, 1, 0),
-         avg_away_value_flag = ifelse(avg_away_value > .04, 1, 0),
-         game_time = paste(weekdays(commence_time), format(commence_time, "%I:%M%p")),
-         game_time = gsub(" 0", " ", game_time),
-         dimers_home_spread_diff = dimers_home_spread - points_dk_home_spreads,
-         dimers_away_spread_diff = dimers_away_spread - points_dk_away_spreads,
-         action_home_spread_diff = actionnetwork_home_spread - points_dk_home_spreads,
-         action_away_spread_diff = actionnetwork_away_spread - points_dk_away_spreads,
-         oddsshark_home_spread_diff = oddsshark_home_spread - points_dk_home_spreads,
-         oddsshark_away_spread_diff = oddsshark_away_spread - points_dk_away_spreads,
-         dratings_home_spread_diff = home_spread_dr - points_dk_home_spreads,
-         dratings_away_spread_diff = away_spread_dr - points_dk_away_spreads,
-         oddsshark_total = oddsshark_away_score + oddsshark_home_score,
-         dratings_total = away_points_dr + home_points_dr,
-         oddsshark_total_diff = oddsshark_total - points_dk_over_totals,
-         dratings_total_diff = dratings_total - points_dk_over_totals) %>%
-  left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("home_team" == "team_abbr")) %>%
-  mutate(home_team_icon = team_logo_espn) %>%
-  select(-team_logo_espn) %>%
+
+nfl_game_data <- bind_rows(odds_df, predictions_df) %>%
+  filter(!is.na(commence_time)) %>%
+  select(-c(type)) %>%
+  pivot_wider(names_from = c(site), values_from = c(away_prob, home_prob, away_spread, home_spread, away_points, home_points, total), values_fn = mean) %>%
+  mutate(favorite_team = ifelse(home_spread_dk < 0, home_team, away_team),
+         favorite_spread_book = ifelse(home_spread_dk < 0, home_spread_dk, away_spread_dk)) %>%
+  left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("favorite_team" == "team_abbr")) %>%
+  mutate(favorite_team_icon = team_logo_espn) %>%
+  select(-c(team_logo_espn, away_points_action, away_points_dimers, home_points_action, home_points_dimers)) %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("away_team" == "team_abbr")) %>%
-  mutate(away_team_icon = team_logo_espn) %>%
-  select(-team_logo_espn)
+  rename("away_team_icon" = "team_logo_espn") %>%
+  left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("home_team" == "team_abbr")) %>%
+  rename("home_team_icon" = "team_logo_espn") %>%
+  select_if(~!all(is.na(.))) %>%
+  mutate(#action
+    favorite_spread_delta_home_action = ifelse("home_spread_action" %in% names(.) & favorite_team == home_team, home_spread_action - home_spread_dk, NA),
+    favorite_spread_delta_away_action = ifelse("away_spread_action" %in% names(.) & favorite_team == away_team, away_spread_action - away_spread_dk, NA),
+    favorite_spread_delta_action = ifelse(is.na(favorite_spread_delta_home_action), favorite_spread_delta_away_action, favorite_spread_delta_home_action),
+    #athletic
+    favorite_spread_delta_home_athletic = ifelse("home_spread_athletic" %in% names(.) & favorite_team == home_team, home_spread_athletic - home_spread_dk, NA),
+    favorite_spread_delta_away_athletic = ifelse("away_spread_athletic" %in% names(.) & favorite_team == away_team, away_spread_athletic - away_spread_dk, NA),
+    favorite_spread_delta_athletic = ifelse(is.na(favorite_spread_delta_home_athletic), favorite_spread_delta_away_athletic, favorite_spread_delta_home_athletic),
+    #dratings
+    favorite_spread_delta_home_dratings = ifelse("home_spread_dratings" %in% names(.) & favorite_team == home_team, home_spread_dratings - home_spread_dk, NA),
+    favorite_spread_delta_away_dratings = ifelse("away_spread_dratings" %in% names(.) & favorite_team == away_team, away_spread_dratings - away_spread_dk, NA),
+    favorite_spread_delta_dratings = ifelse(is.na(favorite_spread_delta_home_dratings), favorite_spread_delta_away_dratings, favorite_spread_delta_home_dratings),
+    #dimers
+    favorite_spread_delta_home_dimers = ifelse("home_spread_dimers" %in% names(.) & favorite_team == home_team, home_spread_dimers - home_spread_dk, NA),
+    favorite_spread_delta_away_dimers = ifelse("away_spread_dimers" %in% names(.) & favorite_team == away_team, away_spread_dimers - away_spread_dk, NA),
+    favorite_spread_delta_dimers = ifelse(is.na(favorite_spread_delta_home_dimers), favorite_spread_delta_away_dimers, favorite_spread_delta_home_dimers),
+    #oddsshark
+    favorite_spread_delta_home_shark = ifelse("home_spread_shark" %in% names(.) & favorite_team == home_team, home_spread_shark - home_spread_dk, NA),
+    favorite_spread_delta_away_shark = ifelse("away_spread_shark" %in% names(.) & favorite_team == away_team, away_spread_shark - away_spread_dk, NA),
+    favorite_spread_delta_shark = ifelse(is.na(favorite_spread_delta_home_shark), favorite_spread_delta_away_shark, favorite_spread_delta_home_shark)) %>%
+  select(!starts_with("favorite_spread_delta_away")) %>%
+  select(!starts_with("favorite_spread_delta_home")) %>%
+  rowwise() %>%
+  mutate(total_delta_athletic = ifelse("total_athletic" %in% names(.), total_athletic - total_dk, NA),
+         total_delta_dratings = ifelse("total_dratings" %in% names(.), total_dratings - total_dk, NA),
+         total_delta_shark = ifelse("total_shark" %in% names(.), total_shark - total_dk, NA)) %>%
+  select_if(~!all(is.na(.))) %>%
+  mutate(game_time = paste(weekdays(commence_time), format(commence_time, "%I:%M%p")),
+         game_time = gsub(" 0", " ", game_time)) %>%
+  arrange(commence_time) %>%
+  mutate(favorite_and_spread = paste0(favorite_team, " ", favorite_spread_book)) %>%
+  select(any_of(c("game_time", "away_team_icon", "away_team", "home_team", "home_team_icon", "favorite_and_spread",
+                  "away_points_athletic", "home_points_athletic", "away_points_dratings", "home_points_dratings", "away_points_shark", "home_points_shark",
+                  "favorite_spread_delta_athletic", "favorite_spread_delta_action", "favorite_spread_delta_dratings", "favorite_spread_delta_dimers", "favorite_spread_delta_shark",
+                  "total_delta_athletic", "total_delta_dratings", "total_delta_shark")))
 
-final_gt2 <- final_plays2 %>%
-  select(c(game_time, away_team_icon, away_team, home_team,home_team_icon, avg_book_spread, avg_book_spread_text,
-           actionnetwork_home_spread, oddsshark_home_spread, dimers_home_spread, home_spread_dr,
-           action_home_spread_diff, dimers_home_spread_diff, oddsshark_home_spread_diff, dratings_home_spread_diff,
-           points_dk_over_totals, oddsshark_total_diff, dratings_total_diff)) %>%
+projection_count <- nrow(unique(predictions_df %>% filter(!is.na(home_points)) %>% select(site)))
+spread_delta_count <- nrow(unique(predictions_df %>% filter(!is.na(home_spread)) %>% select(site)))
+total_delta_count <- projection_count
+
+projection_count<-3
+spread_delta_count<-5
+
+short <- c(9,16)
+long <- c(9, 11, 19, 20)
+dotted_line_vector <- if(projection_count == 2 & spread_delta_count == 4) short else long
+
+nfl_game_gt <- nfl_game_data %>%
   group_by(game_time) %>%
   gt() %>%
-  tab_spanner(label = "Home Spread Δ",
-              columns = c(action_home_spread_diff, dratings_home_spread_diff, dimers_home_spread_diff, oddsshark_home_spread_diff),
-              id = "home_spread") %>%
-  tab_spanner(label = "Game Total Δ",
-              columns = c(points_dk_over_totals, dratings_total_diff, oddsshark_total_diff),
-              id = "total_diff") %>%
-  cols_label(game_time ~ "", away_team ~ "AWAY", home_team ~ "HOME", avg_book_spread ~ "Home Spread",
-             action_home_spread_diff ~ "Action",
-             oddsshark_home_spread_diff ~ "Shark",
-             dimers_home_spread_diff ~ "Dimers",
-             dratings_home_spread_diff ~ "DRatings",
-           #  avg_home_spread_diff ~ "Avg",
-             points_dk_over_totals ~ "Book",
-             dratings_total_diff ~ "DRatings",
-             oddsshark_total_diff ~ "Shark",
-             away_team_icon ~ "",
-             home_team_icon ~ ""
-             ) %>%
-  fmt_number(columns = c(avg_book_spread, action_home_spread_diff, dratings_home_spread_diff, dimers_home_spread_diff, oddsshark_home_spread_diff, dratings_total_diff, oddsshark_total_diff),
-             decimals = 1, force_sign = TRUE) %>%
-  cols_align(columns = -game_time, align = "center") %>%
-  data_color(columns = c(action_home_spread_diff, dratings_home_spread_diff, dimers_home_spread_diff, oddsshark_home_spread_diff),
+  gt_img_rows(columns = away_team_icon) %>%
+  gt_img_rows(columns = home_team_icon) %>%
+  fmt_number(columns = contains("points"), decimals = 1) %>%
+  fmt_number(columns = contains("total_delta"), decimals = 1, force_sign = TRUE) %>%
+  tab_spanner(columns = contains("points_dratings"),
+              label = "DRatings",
+              id = "projection_dratings") %>%
+  tab_spanner(columns = contains("points_athletic"),
+              label = "The Athletic",
+              id = "projection_athletic") %>%
+  tab_spanner(columns = contains("points_shark"),
+              label = "OddsShark",
+              id = "projection_shark") %>%
+  tab_spanner(spanners = contains("projection"),
+              label = "Projections") %>%
+  tab_spanner(columns = contains("spread_delta"),
+              label = "Spread",
+              id = "spread_delta") %>%
+  tab_spanner(columns = contains("total_delta"),
+              label = "Total",
+              id = "total_delta") %>%
+  cols_label(contains("favorite_spread_delta_dratings") ~ "DRatings",
+             contains("favorite_spread_delta_action") ~ "Action",
+             contains("favorite_spread_delta_athletic") ~ "Athletic",
+             contains("favorite_spread_delta_shark") ~ "Shark",
+             contains("favorite_spread_delta_dimers") ~ "Dimers",
+             contains("total_delta_athletic") ~ "Athletic",
+             contains("total_delta_shark") ~ "Shark",
+             contains("total_delta_dratings") ~ "DRatings",
+             contains("away_points") ~ "Away",
+             contains("home_points") ~ "Home",
+             contains("away_team") ~ "AWAY",
+             contains("home_team") ~ "HOME",
+             contains("icon") ~ "",
+             contains("favorite_and_spread") ~ "Spread") %>%
+  tab_spanner(columns = contains("spread_delta"),
+              spanners = c("spread_delta", "total_delta"),
+              label = "Deltas") %>%
+  tab_header(paste0(nfl_week, " Games")) %>%
+  data_color(columns = contains("spread_delta"),
              bins = c(-11, -2, 0, 2, 11),
              method = "bin",
              palette = c("lightblue", "white", "white", "lightgreen"),
              na_color = "white") %>%
-  data_color(columns = c(dratings_total_diff, oddsshark_total_diff),
+  data_color(columns = contains("total_delta"),
              bins = c(-11, -2, 0, 2, 11),
              method = "bin",
              palette = c("lightblue", "white", "white", "lightgreen"),
              na_color = "white") %>%
-  cols_hide(c(actionnetwork_home_spread, dimers_home_spread, oddsshark_home_spread, home_spread_dr,
-              avg_book_spread_text)) %>%
-  gt_img_rows(columns = "away_team_icon") %>%
-  gt_img_rows(columns = "home_team_icon") %>%
+  data_color(columns = contains("home_points"),
+             palette = c("white", "lightblue"),
+             domain = c(12, 36),
+             na_color = "white") %>%
+  data_color(columns = contains("away_points"),
+             palette = c("white", "lightblue"),
+             domain = c(12, 36),
+             na_color = "white") %>%
+  cols_align(align = "center") %>%
+  cols_align(columns = "away_team_icon", align = "right") %>%
+  cols_align(columns = "home_team_icon", align = "left") %>%
+  tab_style(style = cell_borders(sides = c("left")),
+            locations = list(cells_body(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)),
+                             cells_column_labels(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)))) %>%
+  tab_style(style = cell_borders(sides = c("left"), style = "dotted"),
+            locations = list(cells_body(columns = dotted_line_vector),
+                             cells_column_labels(columns = dotted_line_vector))) %>%
+  tab_source_note(source_note = md("Odds provided by **odds-api.com**; projections provided by **theathletic.com**, **actionnetwork.com**, **dratings.com**, **dimers.com**, and **oddsshark.com**")) %>%
   tab_style(style = cell_text(weight = "bold"),
-            locations = cells_row_groups()) %>%
-  tab_style(style = cell_borders(sides = "left", style = "dotted"),
-            locations = cells_body(columns = "points_dk_over_totals")) %>%
-  tab_style(style = cell_borders(sides = "right", style = "solid"),
-            locations = cells_body(columns = 6)) %>%
-  cols_width(ends_with("_diff") ~ px(50),
-             "points_dk_over_totals" ~ px(50)) %>%
-  tab_header(nfl_week) %>%
-  tab_source_note(source_not = md("Odds provided by **odds-api**; Projections provided by **Action Network**, **DRatings**, **Dimers**, and **OddsShark**"))
+            locations = list(cells_row_groups(),
+                             cells_column_spanners())) %>%
+  cols_width(contains("delta") ~ px(300))
 
-ifelse(class(final_gt2) != "try-error",
-       gtsave(final_gt2, expand = 100, filename = "NFL_Game_Values.png", vheight = 100, vwidth =1000),
+
+ifelse(class(nfl_game_gt) != "try-error",
+       gtsave(nfl_game_gt, expand = 100, filename = "NFL_Game_Values.png", vheight = 100, vwidth =1000),
        NA)
 
 
 # predictions -------------------------------------------------------------
 
-write_rds(standard_plays, file = paste0("NFL/", nfl_week, " - predictions.rds"))
+write_rds(predictions_df, file = paste0("NFL/", nfl_week, " - predictions.rds"))
