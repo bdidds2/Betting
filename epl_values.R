@@ -269,7 +269,7 @@ epl_final <- epl_odds %>%
          btts_no_dk_value_xg = btts_no_xg - prob_dk_no_btts)
 
 
-crests <- read_csv("https://raw.githubusercontent.com/dm13450/FootballCrests/main/crest.csv", show_col_types = FALSE) %>%
+epl_crests <- read_csv("https://raw.githubusercontent.com/dm13450/FootballCrests/main/crest.csv", show_col_types = FALSE) %>%
   clean_names() %>%
   add_row(team = "Luton", url = "https://upload.wikimedia.org/wikipedia/en/thumb/9/9d/Luton_Town_logo.svg/1280px-Luton_Town_logo.svg.png") %>%
   mutate(team = case_when(team == "Man United" ~ "Man Utd",
@@ -299,9 +299,9 @@ prob_to_odds <- function(probability) {
 
 
 epl_data <- epl_final %>%
-  left_join(., crests, by = join_by("away_team" == "team")) %>%
+  left_join(., epl_crests, by = join_by("away_team" == "team")) %>%
   rename("away_team_url" = "url") %>%
-  left_join(., crests, by = join_by("home_team" == "team")) %>%
+  left_join(., epl_crests, by = join_by("home_team" == "team")) %>%
   rename("home_team_url" = "url") %>%
   select(game_time, away_team_url, away_team, home_team, home_team_url, matches("dk"), (matches("xg") & !matches("fd")), (matches("dr") & !matches("fd"))) %>%
   rowwise() %>%
