@@ -350,7 +350,7 @@ bund_gt <- bund_data %>%
   cols_width(contains("goals") ~ px(48)) %>%
   gt_img_rows(columns = "away_team_url") %>%
   gt_img_rows(columns = "home_team_url") %>%
-  tab_header(paste0("Bundesliga ", result1, subtitle = bund_dates) %>%
+  tab_header(paste0("Bundesliga ", result1), subtitle = bund_dates) %>%
   tab_source_note(source_not = md("Odds provided by **odds-api**; Projections provided by **footballxg.com** and **dratings.com**")) %>%
   tab_footnote(footnote = "DraftKings value according to footballxg.com",
                locations = cells_column_labels(columns = 10)) %>%
