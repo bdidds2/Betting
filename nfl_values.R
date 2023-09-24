@@ -487,7 +487,7 @@ short <- c(9,16)
 long <- c(9, 11, 19, 20)
 dotted_line_vector <- if(projection_count == 2 & spread_delta_count == 4) short else long
 
-nfl_game_gt <- nfl_game_data %>%
+nfl_game_gt <- try({nfl_game_data %>%
   group_by(game_time) %>%
   gt() %>%
   gt_img_rows(columns = away_team_icon) %>%
@@ -562,7 +562,8 @@ nfl_game_gt <- nfl_game_data %>%
             locations = list(cells_row_groups(),
                              cells_column_spanners())) %>%
   cols_width(contains("delta") ~ px(80),
-             favorite_and_spread ~ px(90))
+             favorite_and_spread ~ px(90))},
+  silent = TRUE)
 
 
 ifelse(class(nfl_game_gt) != "try-error",
@@ -572,4 +573,13 @@ ifelse(class(nfl_game_gt) != "try-error",
 
 # predictions -------------------------------------------------------------
 
-write_rds(predictions_df, file = paste0("NFL/", nfl_week, " - predictions.rds"))
+#current <- try({read_rds(file = paste0("NFL/", nfl_week, " - predictions.rds"))}, silent = TRUE)
+new <-  bind_rows(odds_df, predictions_df) %>%
+  filter(!is.na(commence_time)) %>%
+  select(-c(type)) %>%
+  pivot_wider(names_from = c(site), values_from = c(away_prob, home_prob, away_spread, home_spread, away_points, home_points, total), values_fn = mean) %>%
+  mutate(append_filter = as.integer(as.Date(commence_time) - today())) %>%
+  filter(append_filter == 0) #%>%
+ # bind_rows(., current)
+
+write_rds(new, file = paste0("NFL/", nfl_week, " - predictions.rds"))
