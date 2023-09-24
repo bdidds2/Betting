@@ -363,7 +363,7 @@ bund_gt <- bund_data %>%
               heading.title.font.weight = "bolder",
               heading.subtitle.font.size = 20)
 
-gtsave(bund_gt, expand = 30, filename = "Bundesliga.png", vheight = 100, vwidth =1700)
+gtsave(bund_gt, expand = 30, filename = "Bundesliga.png", vheight = 100, vwidth =4000)
 
 write_rds(bund_data, file = paste0("Soccer/", format(today(), "%b%d"), " - Bundesliga predictions.rds"))
 
