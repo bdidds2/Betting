@@ -48,6 +48,8 @@ jobs:
 
       - name: Import data
         run: Rscript -e 'source("epl_values.R")'
+        
+      - name: Import data two  
         run: Rscript -e 'source("bundesliga_values.R")'
 
       - name: Commit results
