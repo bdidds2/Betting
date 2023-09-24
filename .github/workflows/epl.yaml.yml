@@ -48,11 +48,13 @@ jobs:
 
       - name: Import data
         run: Rscript -e 'source("epl_values.R")'
+        run: Rscript -e 'source("bundesliga_values.R")'
 
       - name: Commit results
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add EPL.png
+          git add Bundesliga.png
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
