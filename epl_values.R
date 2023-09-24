@@ -408,7 +408,7 @@ epl_gt2 <- epl_data %>%
               heading.title.font.weight = "bolder",
               heading.subtitle.font.size = 20)
 
-gtsave(epl_gt2, expand = 1000, filename = "EPL.png", vheight = 100, vwidth =700)
+gtsave(epl_gt2, expand = 30, filename = "EPL.png", vheight = 100, vwidth =1700)
  
 write_rds(epl_data, file = paste0("Soccer/", format(today(), "%b%d"), " - EPL predictions.rds"))
 
