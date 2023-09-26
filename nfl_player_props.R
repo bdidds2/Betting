@@ -726,8 +726,8 @@ ifelse(class(props_all_gt) != "try-error",
 
 
 #save projections
-current <- try({read_rds(file = paste0("NFL/", nfl_week, " - predictions.rds"))}, silent = TRUE)
-new <-  bind_rows(props_df, predictions_df) %>%
+current <- try({read_rds(file = paste0("NFL/", nfl_week, " - predictions_props.rds"))}, silent = TRUE)
+new <-  props_df %>%
   filter(!is.na(commence_time)) %>%
   select(-c(type)) %>%
   pivot_wider(names_from = c(site), values_from = c(away_prob, home_prob, away_spread, home_spread, away_points, home_points, total), values_fn = mean) %>%
