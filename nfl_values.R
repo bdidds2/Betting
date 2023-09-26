@@ -422,7 +422,7 @@ athletic_df <- athletic_raw %>%
 
 predictions_df <- bind_rows(actionnetwork_df, oddsshark_df2, dimers_df, dratings_df, athletic_df) %>%
   mutate(type = "projection") %>%
-  left_join(., odds_df %>% select(game_id, commence_time, week), by = "game_id", relationship = "many-to-many") %>%
+  inner_join(., odds_df %>% select(game_id, commence_time, week), by = "game_id", relationship = "many-to-many") %>%
   select(c(commence_time, week, type, site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total))
 
 
@@ -434,7 +434,7 @@ nfl_game_data <- bind_rows(odds_df, predictions_df) %>%
          favorite_spread_book = ifelse(home_spread_dk < 0, home_spread_dk, away_spread_dk)) %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("favorite_team" == "team_abbr")) %>%
   mutate(favorite_team_icon = team_logo_espn) %>%
-  select(-c(team_logo_espn, away_points_action, away_points_dimers, home_points_action, home_points_dimers)) %>%
+  select(-any_of(c("team_logo_espn", "away_points_action", "away_points_dimers", "home_points_action", "home_points_dimers"))) %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("away_team" == "team_abbr")) %>%
   rename("away_team_icon" = "team_logo_espn") %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = join_by("home_team" == "team_abbr")) %>%
@@ -480,12 +480,12 @@ projection_count <- nrow(unique(predictions_df %>% filter(!is.na(home_points)) %
 spread_delta_count <- nrow(unique(predictions_df %>% filter(!is.na(home_spread)) %>% select(site)))
 total_delta_count <- projection_count
 
-projection_count<-3
-spread_delta_count<-5
+#projection_count<-3
+#spread_delta_count<-5
 
 short <- c(9,16)
 long <- c(9, 11, 19, 20)
-dotted_line_vector <- if(projection_count == 2 & spread_delta_count == 4) short else long
+dotted_line_vector <- if(projection_count == 2 & spread_delta_count == 3) short else long
 
 nfl_game_gt <- try({nfl_game_data %>%
   group_by(game_time) %>%
@@ -551,12 +551,12 @@ nfl_game_gt <- try({nfl_game_data %>%
   cols_align(align = "center") %>%
   cols_align(columns = "away_team_icon", align = "right") %>%
   cols_align(columns = "home_team_icon", align = "left") %>%
-  tab_style(style = cell_borders(sides = c("left"), style = "solid", weight = px(3)),
-            locations = list(cells_body(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)),
-                             cells_column_labels(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)))) %>%
-  tab_style(style = cell_borders(sides = c("left"), style = "solid"),
-            locations = list(cells_body(columns = dotted_line_vector),
-                             cells_column_labels(columns = dotted_line_vector))) %>%
+#  tab_style(style = cell_borders(sides = c("left"), style = "solid", weight = px(3)),
+#            locations = list(cells_body(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)),
+#                             cells_column_labels(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)))) %>%
+#  tab_style(style = cell_borders(sides = c("left"), style = "solid"),
+#            locations = list(cells_body(columns = dotted_line_vector),
+#                             cells_column_labels(columns = dotted_line_vector))) %>%
   tab_source_note(source_note = md("Odds provided by **odds-api.com**; projections provided by **theathletic.com**, **actionnetwork.com**, **dratings.com**, **dimers.com**, and **oddsshark.com**")) %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = list(cells_row_groups(),
