@@ -732,7 +732,8 @@ new <-  props_df %>%
   #select(-c(type)) %>%
   #pivot_wider(names_from = c(site), values_from = c(away_prob, home_prob, away_spread, home_spread, away_points, home_points, total), values_fn = mean) %>%
   mutate(append_filter = as.integer(as.Date(commence_time) - today())) %>%
-  filter(append_filter == 0) %>%
-bind_rows(., current)
+  filter(append_filter == 0)
 
-write_rds(new, file = paste0("NFL/predictions_props.rds"))
+new2 <- bind_rows(new, current)
+
+write_rds(new2, file = paste0("NFL/predictions_props.rds"))
