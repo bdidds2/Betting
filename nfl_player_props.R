@@ -726,7 +726,7 @@ ifelse(class(props_all_gt) != "try-error",
 
 
 #save projections
-current <- try({read_rds(file = paste0("NFL/", nfl_week, " - predictions_props.rds"))}, silent = TRUE)
+current <- try({read_rds(file = paste0("NFL/predictions_props.rds"))}, silent = TRUE)
 new <-  props_df %>%
   filter(!is.na(commence_time)) %>%
   select(-c(type)) %>%
@@ -735,4 +735,4 @@ new <-  props_df %>%
   filter(append_filter == 0) %>%
 bind_rows(., current)
 
-write_rds(new, file = paste0("NFL/", nfl_week, " - predictions_props.rds"))
+write_rds(new, file = paste0("NFL/predictions_props.rds"))

@@ -573,7 +573,7 @@ ifelse(class(nfl_game_gt) != "try-error",
 
 # predictions -------------------------------------------------------------
 
-current <- try({read_rds(file = paste0("NFL/", nfl_week, " - predictions.rds"))}, silent = TRUE)
+current <- try({read_rds(file = paste0("NFL/predictions_games.rds"))}, silent = TRUE)
 new <-  bind_rows(odds_df, predictions_df) %>%
   filter(!is.na(commence_time)) %>%
   select(-c(type)) %>%
@@ -582,4 +582,4 @@ new <-  bind_rows(odds_df, predictions_df) %>%
   filter(append_filter == 0) %>%
   bind_rows(., current)
 
-write_rds(new, file = paste0("NFL/", nfl_week, " - predictions.rds"))
+write_rds(new, file = paste0("NFL/predictions_games.rds"))
