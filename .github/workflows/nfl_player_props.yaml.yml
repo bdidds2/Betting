@@ -59,6 +59,9 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add NFL_Player_Props_All.png
+          git add NFL_Player_Props_All.html
           git add NFL_Player_Prop_Values.png
+          git add NFL_Player_Prop_Values.html
+          git add NFL/*
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
