@@ -734,6 +734,9 @@ new <-  props_df %>%
   mutate(append_filter = as.integer(as.Date(commence_time) - today())) %>%
   filter(append_filter == 0)
 
-new2 <- bind_rows(new, current)
+new2 <- ifelse(class(current) == "try-error", new, bind_rows(new, current))
+new2_name <- ifelse(class(current) == "try-error", 
+                    paste0("NFL/predictions_props_", nfl_week, ".rds"), 
+                    "NFL/predictions_props.rds")
 
-write_rds(new2, file = paste0("NFL/predictions_props.rds"))
+try({write_rds(new2, file = new2_name)}, silent = TRUE)
