@@ -721,7 +721,7 @@ ifelse(class(props_all_gt) != "try-error",
               plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "Error", size = 20) + theme_void()))
 
 ifelse(class(props_all_gt) != "try-error",
-       gtsave(props_all_gt,filename = "NFL_Player_Prop_All.html", inline_css = TRUE),
+       gtsave(props_all_gt,filename = "NFL_Player_Props_All.html", inline_css = TRUE),
        NA)
 
 
