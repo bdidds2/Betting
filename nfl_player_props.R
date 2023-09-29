@@ -37,7 +37,7 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
                           name == "Steelers" ~ "PIT",
                           name == "Texans" ~ "HOU",
                           name == "Colts" ~ "IND",
-                          name == "Jaguars" ~ "JAC",
+                          name == "Jaguars" ~ "JAX",
                           name == "Titans" ~ "TEN",
                           name == "Broncos" ~ "DEN",
                           name == "Chiefs" ~ "KC",
@@ -46,7 +46,7 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
                           name == "Cowboys" ~ "DAL",
                           name == "Giants" ~ "NYG",
                           name == "Eagles" ~ "PHI",
-                          name == "Commanders" ~ "WSH",
+                          name == "Commanders" ~ "WAS",
                           name == "Bears" ~ "CHI",
                           name == "Lions" ~ "DET",
                           name == "Packers" ~ "GB",
@@ -66,6 +66,9 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
 
 options(nflreadr.verbose = FALSE)
 headshots <- load_rosters(2023) %>%
+  select(full_name, headshot_url, team) %>%
+  mutate(dup = ifelse(team == "CAR" & full_name == "Lamar Jackson", 1, 0)) %>%
+  filter(dup == 0) %>%
   select(full_name, headshot_url) %>%
   mutate(full_name = case_when(full_name == "A.J. Brown" ~ "AJ Brown",
                                full_name == "K.J. Osborn" ~ "KJ Osborn",
@@ -332,7 +335,10 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
   select(-c(rutd, retd)) %>%
   pivot_longer(cols = c(payd, paint, ruat, ruyd, patd, rec, reyd, to_score, paat, paco), names_to = "play", values_to = "point") %>%
   mutate(site = "fp",
-         type = "projection")
+         type = "projection") %>%
+  mutate(team = case_when(team == "JAC" ~ "JAX",
+                          team == "WAS" ~ "WSH",
+                          TRUE ~ team))
 
 
 # ciely prop projections --------------------------------------------------
@@ -393,7 +399,10 @@ ciely_props <- bind_rows(ciely_qb, ciely_rb, ciely_wr, ciely_te) %>%
          type = "projection",
          week = ciely_week) %>%
   filter(week == nfl_week_int) %>%
-  select(-week)
+  select(-week) %>%
+  mutate(team = case_when(team == "JAC" ~ "JAX",
+                          team == "WAS" ~ "WSH",
+                          TRUE ~ team))
 
 
 # fantasy sharks projections ------------------------------------------------
@@ -460,6 +469,7 @@ sharks_props <- bind_rows(sharks_qb, sharks_rb, sharks_wr, sharks_te) %>%
                           team == "NEP" ~ "NE",
                           team == "NOS" ~ "NO",
                           team == "SFO" ~ "SF",
+                          team == "WAS" ~ "WSH",
                           TRUE ~ team)) %>%
   mutate(site = "sharks",
          type = "projection")
