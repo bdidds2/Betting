@@ -720,15 +720,16 @@ ifelse(class(props_values_gt) != "try-error",
        gtsave(props_values_gt, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth = 1400),
        ggsave(filename = "NFL_Player_Prop_Values.png", 
               plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "No Values", size = 20) + theme_void()))
+
 #save props values html
 ifelse(class(props_values_gt) != "try-error",
        gtsave(props_values_gt,filename = "NFL_Player_Prop_Values.html", inline_css = TRUE),
        NA)
 
-#ifelse(class(props_all_gt) != "try-error",
-#       gtsave(props_all_gt, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1400),
-#       ggsave(filename = "NFL_Player_Props_All.png", 
-#              plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "Error", size = 20) + theme_void()))
+ifelse(class(props_all_gt) != "try-error",
+       gtsave(props_all_gt, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1400),
+       ggsave(filename = "NFL_Player_Props_All.png", 
+              plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "Error", size = 20) + theme_void()))
 
 ifelse(class(props_all_gt) != "try-error",
        gtsave(props_all_gt,filename = "NFL_Player_Props_All.html", inline_css = TRUE),
