@@ -198,6 +198,7 @@ actionnetwork_url <- read.csv(text = gsheet2text("https://docs.google.com/spread
 actionnetwork_df <- read.xlsx(actionnetwork_url) %>%
   clean_names() %>%
   select(-c(tm)) %>%
+  filter(!is.na(projection)) %>%
   mutate(game_number = ceiling(row_number()/2)) %>%
   rowwise() %>%
   mutate(actionnetwork_prob = spread_to_prob(projection)) %>%
