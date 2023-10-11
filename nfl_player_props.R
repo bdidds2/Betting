@@ -617,7 +617,8 @@ props_values_gt <- try({props_df %>%
              na_color = "white") %>%
   tab_header(paste0(nfl_week, " Values")) %>%
   tab_style(style = cell_text(weight = "bold"),
-            locations = cells_row_groups())
+            locations = cells_row_groups()) %>%
+  sub_missing(missing_text = "")
 }, silent = TRUE)
   
 props_all_gt <- try({props_df %>%
@@ -708,7 +709,8 @@ props_all_gt <- try({props_df %>%
              na_color = "white") %>%
   tab_header(nfl_week) %>%
   tab_style(style = cell_text(weight = "bold"),
-            locations = cells_row_groups())
+            locations = cells_row_groups()) %>%
+  sub_missing(missing_text = "")
 }, silent = TRUE)
 
 # save projections --------------------------------------------------------
