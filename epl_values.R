@@ -411,4 +411,3 @@ epl_gt2 <- epl_data %>%
 gtsave(epl_gt2, expand = 30, filename = "EPL.png", vheight = 100, vwidth =4000)
 
 write_rds(epl_data, file = paste0("Soccer/", format(today(), "%b%d"), " - EPL predictions.rds"))
-
