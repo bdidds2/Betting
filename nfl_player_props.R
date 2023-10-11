@@ -474,6 +474,77 @@ sharks_props <- bind_rows(sharks_qb, sharks_rb, sharks_wr, sharks_te) %>%
   mutate(site = "sharks",
          type = "projection")
 
+
+# trends ------------------------------------------------------------------
+
+stats_passing_raw <- load_nextgen_stats(seasons = 2023, stat_type = "passing")
+stats_rushing_raw <- load_nextgen_stats(seasons = 2023, stat_type = "rushing")
+stats_receiving_raw <- load_nextgen_stats(seasons = 2023, stat_type = "receiving")
+
+
+stats_passing <- stats_passing_raw %>%
+  filter(week != 0) %>%
+  mutate(intended_pass_yards = avg_intended_air_yards * attempts,
+         expected_completions = (expected_completion_percentage/100) * attempts) %>%
+  select(week, player_display_name, pass_yards, intended_pass_yards, attempts, completions, expected_completions, pass_touchdowns, interceptions) %>%
+  rename("player" = "player_display_name",
+         "payd" = "intended_pass_yards",
+         "paat" = "attempts",
+         "paco_actual" = "completions",
+         "paco" = "expected_completions",
+         "patd" = "pass_touchdowns",
+         "paint" = "interceptions") %>%
+  group_by(player) %>%
+  summarize(payd = list(payd),
+            paat = list(paat),
+            paco = list(paco),
+            patd = list(patd),
+            paint = list(paint)) %>%
+  pivot_longer(cols = c(payd, paat, paco, patd, paint),
+               names_to = "play",
+               values_to = "stats")
+
+
+stats_rushing <- stats_rushing_raw %>%
+  filter(week != 0) %>%
+  select(week, player_display_name, expected_rush_yards, rush_attempts, rush_touchdowns) %>%
+  rename("player" = "player_display_name",
+         "ruyd" = "expected_rush_yards",
+         "ruat" = "rush_attempts",
+         "rutd" = "rush_touchdowns") %>%
+  group_by(player) %>%
+  summarize(ruyd = list(ruyd),
+            ruat = list(ruat),
+            rutd = list(rutd)) %>%
+  pivot_longer(cols = c(ruyd, ruat, rutd),
+               names_to = "play",
+               values_to = "stats")
+
+stats_receiving <- stats_receiving_raw %>%
+  filter(week != 0) %>%
+  select(week, player_display_name, receptions, yards, avg_yac, avg_expected_yac, rec_touchdowns) %>%
+  mutate(yac = avg_yac * receptions,
+         xyac = avg_expected_yac * receptions,
+         xyards = yards - yac + xyac) %>%
+  rename("player" = "player_display_name",
+         "reyd" = "xyards",
+         "rec" = "receptions",
+         "retd" = "rec_touchdowns") %>%
+  group_by(player) %>%
+  summarize(reyd = list(reyd),
+            rec = list(rec),
+            retd = list(retd)) %>%
+  pivot_longer(cols = c(reyd, rec, retd),
+               names_to = "play",
+               values_to = "stats")
+
+stats_trend <- bind_rows(stats_passing, stats_rushing, stats_receiving) %>%
+  mutate(play = factor(play, levels = c("paco", "paat", "payd", "patd", "paint", "ruat", "ruyd", "rec", "reyd", "to_score"),
+                       labels = c("Pass Comp", "Pass Att", "Pass Yds", "Pass TDs", "Int", "Rush Att", "Rush Yds", "Rec", "Rec Yds", "Anytime TD")))
+
+
+
+
 # final -------------------------------------------------------------------
 
 projections_df <- bind_rows(ciely_props, pros_props, sharks_props) %>%
@@ -526,8 +597,11 @@ props_df <- bind_rows(projections_df, book_props %>% left_join(projections_df %>
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = c("home_team" = "team_abbr")) %>%
   rename("home_logo" = "team_logo_espn") %>%
   mutate(play = factor(play, levels = c("paco", "paat", "payd", "patd", "paint", "ruat", "ruyd", "rec", "reyd", "to_score"),
-                       labels = c("Pass Comp", "Pass Att", "Pass Yds", "Pass TDs", "Int", "Rush Att", "Rush Yds", "Rec", "Rec Yds", "Anytime TD")))
-         
+                       labels = c("Pass Comp", "Pass Att", "Pass Yds", "Pass TDs", "Int", "Rush Att", "Rush Yds", "Rec", "Rec Yds", "Anytime TD"))) %>%
+  left_join(., stats_trend, by = c("player" = "player", "play" = "play")) %>%
+  mutate(trend  = ifelse(length(stats) == 0, NA, list(stats - ifelse(is.na(point_fd_over), point_dk_over, point_fd_over))))
+
+      
 value_columns <- c("value_ciely", "value_fp", "value_sharks")
 
 props_values_gt <- try({props_df %>%
@@ -536,11 +610,13 @@ props_values_gt <- try({props_df %>%
   filter(if_any(all_of(value_columns), ~.x == 1, na.rm = TRUE)) %>%
   group_by(game_id, game_time) %>%
   select(c(away_logo, home_logo, headshot_url, player, everything())) %>%
-  select(-c(commence_time, week, away_team, home_team, team, point_dk_under, point_fd_under, starts_with("prob_dk"), starts_with("prob_fd"))) %>%
+  select(-c(commence_time, week, away_team, home_team, team, point_dk_under, point_fd_under, starts_with("prob_dk"), starts_with("prob_fd"), stats)) %>%
   select(-any_of(c("value_ciely", "value_sharks", "value_fp"))) %>%
   mutate(line_dk_gt = paste0(point_dk_over, "<br>", "<span style='font-size: 12px;'>", odds_dk_over, "/", odds_dk_under, "</span>"),
          line_fd_gt = paste0(point_fd_over, "<br>", "<span style='font-size: 12px;'>", odds_fd_over, "/", odds_fd_under, "</span>")) %>%
   gt() %>%
+  cols_nanoplot(trend, plot_type = "bar", new_col_name = "nano", new_col_label = "Trend", missing_vals = "gap",
+                options = nanoplot_options(data_bar_fill_color = "#68d75a")) %>%
   fmt_markdown(columns = c(line_dk_gt, line_fd_gt)) %>%
   gt_img_rows(columns = away_logo) %>%
   gt_img_rows(columns = home_logo) %>%
@@ -582,8 +658,8 @@ props_values_gt <- try({props_df %>%
               id = "sharks",
               columns = contains("sharks")) %>%
   tab_spanner(label = "Projections", id = "projections", spanners = c("ciely", "fp", "sharks")) %>%
-  cols_hide(columns = c(point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under)) %>%
-  cols_move_to_end(columns = c(contains("ciely"), contains("fp"), contains("sharks"))) %>%
+  cols_hide(columns = c(trend, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under)) %>%
+  cols_move_to_end(columns = c(contains("ciely"), contains("fp"), contains("sharks"), contains("nano"))) %>%
   cols_label(contains("logo") ~ "",
              contains("url") ~ "",
              contains("point_") ~ "Proj.",
@@ -626,7 +702,9 @@ props_values_gt <- try({props_df %>%
   cols_merge(columns = c(point_dk_over, odds_dk_over),
              pattern = "{1}<br>{2}") %>%
   cols_merge(columns = c(point_fd_over, odds_fd_over),
-               pattern = "{1}<br>{2}")
+               pattern = "{1}<br>{2}") %>%
+  tab_footnote(footnote = "Based on expected stats.",
+               locations = cells_column_labels("nano"))
 }, silent = TRUE)
   
 props_all_gt <- try({props_df %>%
