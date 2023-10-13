@@ -552,12 +552,18 @@ nfl_game_gt <- try({nfl_game_data %>%
   cols_align(align = "center") %>%
   cols_align(columns = "away_team_icon", align = "right") %>%
   cols_align(columns = "home_team_icon", align = "left") %>%
-#  tab_style(style = cell_borders(sides = c("left"), style = "solid", weight = px(3)),
-#            locations = list(cells_body(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)),
-#                             cells_column_labels(columns = c(7, 7+2*projection_count, 7+2*projection_count+spread_delta_count)))) %>%
-#  tab_style(style = cell_borders(sides = c("left"), style = "solid"),
-#            locations = list(cells_body(columns = dotted_line_vector),
-#                             cells_column_labels(columns = dotted_line_vector))) %>%
+  tab_style(style = cell_borders(sides = c("right"), style = "solid", weight = px(3)),
+            locations = list(cells_body(columns = c(home_points_shark, favorite_and_spread)),
+                             cells_column_labels(columns = c(home_points_shark, favorite_and_spread))))  %>%
+  tab_style(style = cell_borders(sides = c("right"), style = "solid"),
+            locations = list(cells_body(columns = contains("home_points_athletic")),
+                             cells_column_labels(columns = contains("home_points_athletic")))) %>%
+  tab_style(style = cell_borders(sides = c("right"), style = "solid"),
+              locations = list(cells_body(columns = contains("home_points_drating")),
+                               cells_column_labels(columns = contains("home_points_drating")))) %>%
+  tab_style(style = cell_borders(sides = c("right"), style = "solid", weight = px(3)),
+              locations = list(cells_body(columns = favorite_spread_delta_shark),
+                               cells_column_labels(columns = favorite_spread_delta_shark))) %>%
   tab_source_note(source_note = md("Odds provided by **odds-api.com**; projections provided by **theathletic.com**, **actionnetwork.com**, **dratings.com**, **dimers.com**, and **oddsshark.com**")) %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = list(cells_row_groups(),
