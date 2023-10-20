@@ -367,5 +367,5 @@ liga_gt <- liga_data %>%
 
 gtsave(liga_gt, expand = 30, filename = "LaLiga.png", vheight = 100, vwidth =4000)
 
-write_rds(bund_data, file = paste0("Soccer/", format(today(), "%b%d"), " - La Liga predictions.rds"))
+write_rds(liga_data, file = paste0("Soccer/", format(today(), "%b%d"), " - La Liga predictions.rds"))
 
