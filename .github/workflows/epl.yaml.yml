@@ -51,6 +51,9 @@ jobs:
         
       - name: Import data two  
         run: Rscript -e 'source("bundesliga_values.R")'
+        
+      - name: Import data three  
+        run: Rscript -e 'source("laliga_values.R")'
 
       - name: Commit results
         run: |
@@ -58,6 +61,7 @@ jobs:
           git config --local user.name "GitHub Actions"
           git add EPL.png
           git add Bundesliga.png
+          git add LaLiga.png
           git add Soccer/*
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"

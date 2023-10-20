@@ -55,16 +55,16 @@ american_to_prob <- function(american_odds) {
   return(abs(probability))
 }
 
-odds_api_team_names <- c("Augsburg", "Bayer Leverkusen", "Bayern Munich", "Borussia Dortmund", "Borussia Monchengladbach", "Eintracht Frankfurt", "FC Heidenheim", "FC Koln", "FSV Mainz 05", "RB Leipzig", "SC Freiburg", "SV Darmstadt 98", "TSG Hoffenheim", "Union Berlin", "VfB Stuttgart", "VfL Bochum", "VfL Wolfsburg", "Werder Bremen")
-xg_team_names <- c("Augsburg", "Leverkusen", "Bayern Munich", "Dortmund", "M'gladbach", "Ein Frankfurt", "Heidenheim", "FC Koln", "Mainz", "RB Leipzig", "Freiburg", "Darmstadt", "Hoffenheim", "Union Berlin", "Stuttgart", "Bochum", "Wolfsburg", "Werder Bremen")
-dratings_team_names <- c("Augsburg", "Bayer 04 Leverkusen", "Bayern Munich", "Dortmund", "Borussia Monchengladbach", "Eintracht Frankfurt", "FC Heidenheim", "FC Koln", "Mainz 05", "RB Leipzig", "Freiburg", "Darmstadt 98", "Hoffenheim", "Union Berlin", "VfB Stuttgart", "VfL Bochum", "Wolfsburg", "Werder Bremen")
-
+odds_api_team_names <- c("Alavés", "Almería", "Athletic Bilbao", "Atlético Madrid", "Barcelona", "CA Osasuna","Cádiz CF", "Celta Vigo", "Getafe", "Girona", "Granada CF", "Las Palmas", "Mallorca", "Rayo Vallecano","Real Betis", "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Villarreal")
+xg_team_names <- c("Alaves", "Almeria", "Ath Bilbao", "Ath Madrid", "Barcelona", "Osasuna", "Cadiz", "Celta", "Getafe", "Girona", "Granada", "Las Palmas", "Mallorca", "Vallecano", "Betis", "Real Madrid", "Sociedad", "Sevilla", "Valencia", "Villarreal")
+dratings_team_names <- c("Alaves", "Almeria", "Athletic Club", "Atletico Madrid", "Barcelona", "Osasuna", "Cadiz", "Celta Vigo", "Getafe", "Girona", "Granada", "Las Palmas", "Mallorca", "Rayo Vallecano", "Betis", "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Villarreal")
+ 
 
 team_name_df <- data.frame(api_name = odds_api_team_names,
                            xg_name = xg_team_names,
                            dratings_name = dratings_team_names)
 
-bund_odds <- bund_h2h_content %>% 
+liga_odds <- liga_h2h_content %>% 
   clean_names() %>% 
   select(commence_time, away_team, home_team, play = markets_key, book = key, outcome = markets_outcomes_name, odds = markets_outcomes_price) %>%
   filter(!is.na(commence_time)) %>%
@@ -92,7 +92,7 @@ bund_odds <- bund_h2h_content %>%
          game_time = gsub(" 0", " ", game_time)) %>%
   select(-c(dratings_name.x, dratings_name.y))
 
-bund_dates <- paste0(format(min(bund_odds$commence_time), "%b %d"), " - ", format(max(bund_odds$commence_time), "%b %d"))
+liga_dates <- paste0(format(min(liga_odds$commence_time), "%b %d"), " - ", format(max(liga_odds$commence_time), "%b %d"))
 
 # bund matchday number ---------------------------------------------------------
 
@@ -134,27 +134,27 @@ xg <- read.csv(text = gsheet2text("docs.google.com/spreadsheets/d/1yfzhYPUJfj8BV
 
 # bund dratings  ----------------------------------------------------------------
 
-dratings_url1 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/1?conference_id=63#scroll-upcoming"
+dratings_url1 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/1?conference_id=66#scroll-upcoming"
 dratings_raw1 <- ifelse(length(html_table(read_html(dratings_url1))) > 3, html_table(read_html(dratings_url1))[1], NA)[[1]]
-dratings_url2 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/2?conference_id=63#scroll-upcoming"
+dratings_url2 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/2?conference_id=66#scroll-upcoming"
 dratings_raw2 <- ifelse(length(html_table(read_html(dratings_url2))) > 3, html_table(read_html(dratings_url2))[1], NA)[[1]]
-dratings_url3 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/3?conference_id=63#scroll-upcoming"
+dratings_url3 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/3?conference_id=66#scroll-upcoming"
 dratings_raw3 <- ifelse(length(html_table(read_html(dratings_url3))) > 3, html_table(read_html(dratings_url3))[1], NA)[[1]]
-dratings_url4 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/4?conference_id=63#scroll-upcoming"
+dratings_url4 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/4?conference_id=66#scroll-upcoming"
 dratings_raw4 <- ifelse(length(html_table(read_html(dratings_url4))) > 3, html_table(read_html(dratings_url4))[1], NA)[[1]]
-dratings_url5 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/5?conference_id=63#scroll-upcoming"
+dratings_url5 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/5?conference_id=66#scroll-upcoming"
 dratings_raw5 <- ifelse(length(html_table(read_html(dratings_url5))) > 3, html_table(read_html(dratings_url5))[1], NA)[[1]]
-dratings_url6 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/6?conference_id=63#scroll-upcoming"
+dratings_url6 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/6?conference_id=66#scroll-upcoming"
 dratings_raw6 <- ifelse(length(html_table(read_html(dratings_url6))) > 3, html_table(read_html(dratings_url6))[1], NA)[[1]]
-dratings_url7 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/7?conference_id=63#scroll-upcoming"
+dratings_url7 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/7?conference_id=66#scroll-upcoming"
 dratings_raw7 <- ifelse(length(html_table(read_html(dratings_url7))) > 3, html_table(read_html(dratings_url7))[1], NA)[[1]]
-dratings_url8 <- "https://www.dratings.com/predictor/german-bundesliga-predictions/upcoming/8?conference_id=63#scroll-upcoming"
+dratings_url8 <- "https://www.dratings.com/predictor/spain-la-liga-predictions/upcoming/8?conference_id=66#scroll-upcoming"
 dratings_raw8 <- ifelse(length(html_table(read_html(dratings_url8))) > 3, html_table(read_html(dratings_url8))[1], NA)[[1]]
 
 
-df_list_bund <- list(dratings_raw1, dratings_raw2, dratings_raw3, dratings_raw4, dratings_raw5, dratings_raw6)
+df_list_liga <- list(dratings_raw1, dratings_raw2, dratings_raw3, dratings_raw4, dratings_raw5, dratings_raw6)
 
-filtered_df_list_bund <- lapply(df_list_bund, function(df) {
+filtered_df_list_liga <- lapply(df_list_liga, function(df) {
   if (is.data.frame(df)) {
     df <- df %>% filter_all(any_vars(!is.na(.)))
     if (nrow(df) > 0) {
@@ -165,10 +165,10 @@ filtered_df_list_bund <- lapply(df_list_bund, function(df) {
 })
 
 # Remove NULL entries and bind rows
-filtered_df_list_bund <- do.call(rbind, Filter(Negate(is.null), filtered_df_list_bund))
+filtered_df_list_liga <- do.call(rbind, Filter(Negate(is.null), filtered_df_list_liga))
 
 
-dratings_bund1 <- filtered_df_list_bund %>%
+dratings_liga1 <- filtered_df_list_liga %>%
   select(c(Teams, Win, Draw, Goals, TotalGoals)) %>%
   clean_names() %>%
   as.data.frame() %>%
@@ -178,11 +178,11 @@ dratings_bund1 <- filtered_df_list_bund %>%
          home_goals_dr = substr(goals, 5, nchar(goals)))
 
 pattern1 <- paste(team_name_df$dratings_name, collapse = "|")
-matches1 <- str_extract_all(dratings_bund1$teams, pattern1)
-dratings_bund1$away_team <- sapply(matches1, function(x) x[1])
-dratings_bund1$home_team <- sapply(matches1, function(x) x[2])
+matches1 <- str_extract_all(dratings_liga1$teams, pattern1)
+dratings_liga1$away_team <- sapply(matches1, function(x) x[1])
+dratings_liga1$home_team <- sapply(matches1, function(x) x[2])
 
-dratings_bund <- dratings_bund1 %>%
+dratings_liga <- dratings_liga1 %>%
   left_join(., team_name_df, by = join_by("away_team" == "dratings_name")) %>%
   mutate(away_team = xg_name) %>%
   select(-c(api_name, xg_name)) %>%
@@ -205,12 +205,12 @@ dratings_bund <- dratings_bund1 %>%
 # bund_final -------------------------------------------------------------
 
 
-bund_final <- bund_odds %>%
+liga_final <- liga_odds %>%
   pivot_wider(names_from = c(book, outcome, play), values_from = c(odds, prob)) %>%
   left_join(., xg, by = "game_id") %>%
   rename("home_team" = "home_team.x", "away_team" = "away_team.x") %>%
   select(-c(home_team.y, away_team.y)) %>%
-  left_join(., dratings_bund, by = "game_id") %>%
+  left_join(., dratings_liga, by = "game_id") %>%
   rename("home_team" = "home_team.x", "away_team" = "away_team.x") %>%
   select(-c(home_team.y, away_team.y)) %>%
   mutate(away_dc_dk = prob_dk_away_h2h + prob_dk_draw_h2h,
@@ -230,24 +230,26 @@ bund_final <- bund_odds %>%
 
 
 crests <- data.frame("team" = xg_team_names,
-                     "url" = c("https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3841.png", 
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/131.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/132.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/124.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/268.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/125.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/6418.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/122.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/2950.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/11420.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/126.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3812.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/7911.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/598.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/134.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/121.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/138.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/137.png"))
+                     "url" = c("https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/96.png", 
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/6832.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/93.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/1068.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/83.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/97.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3842.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/85.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/2922.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9812.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3747.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/98.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/84.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/101.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/244.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/86.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/89.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/243.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/94.png",
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/102.png"))
 
 prob_to_odds <- function(probability) {
   if (is.na(probability)) {
@@ -267,7 +269,7 @@ prob_to_odds <- function(probability) {
 }
 
 
-bund_data <- bund_final %>%
+liga_data <- liga_final %>%
   left_join(., crests, by = join_by("away_team" == "team")) %>%
   rename("away_team_url" = "url") %>%
   left_join(., crests, by = join_by("home_team" == "team")) %>%
@@ -289,7 +291,7 @@ bund_data <- bund_final %>%
          away_dc_dk_value_xg, away_dc_min_xg, away_dc_dk_value_dr, away_dc_min_dr,
          home_dc_dk_value_xg, home_dc_min_xg, home_dc_dk_value_dr, home_dc_min_dr)
 
-bund_gt <- bund_data %>%
+liga_gt <- liga_data %>%
   group_by(game_time) %>%
   gt() %>%
   tab_spanner(label = "Football xG",
@@ -350,7 +352,7 @@ bund_gt <- bund_data %>%
   cols_width(contains("goals") ~ px(48)) %>%
   gt_img_rows(columns = "away_team_url") %>%
   gt_img_rows(columns = "home_team_url") %>%
-  tab_header(paste0("Bundesliga ", result1), subtitle = bund_dates) %>%
+  tab_header(paste0("La Liga ", result1), subtitle = liga_dates) %>%
   tab_source_note(source_not = md("Odds provided by **odds-api**; Projections provided by **footballxg.com** and **dratings.com**")) %>%
   tab_footnote(footnote = "DraftKings value according to footballxg.com",
                locations = cells_column_labels(columns = 10)) %>%
@@ -363,7 +365,7 @@ bund_gt <- bund_data %>%
               heading.title.font.weight = "bolder",
               heading.subtitle.font.size = 20)
 
-gtsave(bund_gt, expand = 30, filename = "Bundesliga.png", vheight = 100, vwidth =4000)
+gtsave(liga_gt, expand = 30, filename = "LaLiga.png", vheight = 100, vwidth =4000)
 
-write_rds(bund_data, file = paste0("Soccer/", format(today(), "%b%d"), " - Bundesliga predictions.rds"))
+write_rds(bund_data, file = paste0("Soccer/", format(today(), "%b%d"), " - La Liga predictions.rds"))
 
