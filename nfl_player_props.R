@@ -41,7 +41,7 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
                           name == "Titans" ~ "TEN",
                           name == "Broncos" ~ "DEN",
                           name == "Chiefs" ~ "KC",
-                          name == "Raiders" ~ "LAV",
+                          name == "Raiders" ~ "LV",
                           name == "Chargers" ~ "LAC",
                           name == "Cowboys" ~ "DAL",
                           name == "Giants" ~ "NYG",
@@ -67,12 +67,15 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
 options(nflreadr.verbose = FALSE)
 headshots <- load_rosters(2023) %>%
   select(full_name, headshot_url, team) %>%
-  mutate(dup = ifelse(team == "CAR" & full_name == "Lamar Jackson", 1, 0)) %>%
+  mutate(dup = case_when(team == "CAR" & full_name == "Lamar Jackson" ~ 1, 
+                         team == "JAX" & full_name == "Josh Allen" ~ 1,
+                         TRUE ~ 0)) %>%
   filter(dup == 0) %>%
   select(full_name, headshot_url) %>%
   mutate(full_name = case_when(full_name == "A.J. Brown" ~ "AJ Brown",
                                full_name == "K.J. Osborn" ~ "KJ Osborn",
                                full_name == "Gardner Minshew II" ~ "Gardner Minshew",
+                               full_name == "Gabriel Davis" ~ "Gabe Davis",
                                TRUE ~ full_name))
 
 # api setup ---------------------------------------------------------------
@@ -219,6 +222,7 @@ book_props <- new_df %>%
                             player == "Tony Jones Jr." ~ "Tony Jones",
                             player == "Gardner Minshew II" ~ "Gardner Minshew",
                             player == "A.J. Dillon" ~ "AJ Dillon",
+                            player == "Gabriel Davis" ~ "Gabe Davis",
                             TRUE ~ player),
          outcome = case_when(outcome == "Over" ~"over",
                                       outcome == "Under" ~ "under",
@@ -788,7 +792,7 @@ props_all_gt <- try({props_df %>%
   cols_width(contains(c("diff", "point_ciely", "point_sharks", "point_fp")) ~ px(50)) %>%
   data_color(columns = contains("diff"),
              rows = (play == "Rush Att" | play == "Rec" | play == "Pass Att" | play == "Pass Comp" | play == "Pass Yds" | play == "Rec Yds" | play == "Rush Yds"),
-             palette = c("green", "lightgreen", "white", "lightgreen", "green"),
+             palette = c("green", "#b9f3b9", "white", "#b9f3b9", "green"),
              bins = c(-100, -.4, -.2, .2, .4, 100),
              method = "bin",
              # domain = c(-7, 7),
