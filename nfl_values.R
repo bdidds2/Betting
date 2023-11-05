@@ -222,17 +222,18 @@ actionnetwork_df <- read.xlsx(actionnetwork_url) %>%
 
 oddsshark_url <- "https://www.oddsshark.com/nfl/computer-picks"
 oddsshark_count <- read_html(oddsshark_url) %>%
-  html_nodes(xpath = '/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[3]/div/div[2]/div[1]/div') %>%
+  html_nodes(xpath = '/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div') %>%
   html_text() %>%
   str_count(., "/") / 3 +1
+
 
 oddsshark_df <- data.frame()
 
 for (n in 1:oddsshark_count){
-  oddsshark_away_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[3]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[1]')) %>% html_text()
-  oddsshark_home_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[3]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[3]')) %>% html_text()
-  oddsshark_away_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[3]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[2]/div/span[2]')) %>% html_text()
-  oddsshark_home_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[3]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[3]/td[1]/div/span[2]')) %>% html_text()
+  oddsshark_away_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[1]')) %>% html_text()
+  oddsshark_home_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[3]')) %>% html_text()
+  oddsshark_away_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[2]/div/span[2]')) %>% html_text()
+  oddsshark_home_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[3]/td[1]/div/span[2]')) %>% html_text()
   iteration_result <- data.frame(
     game = n,
     away_team = ifelse(length(oddsshark_away_team) == 0, NA, oddsshark_away_team),
