@@ -169,10 +169,16 @@ colnames(new_df) <- column_names
 
 # Apply the custom function to each row and add the responses to the new data frame
 for (n in 1:nrow(game_df)) {
-  new_row <- event_url_to_response(game_df$id[n])
-  new_row <- setNames(new_row, column_names)
-  new_df <- bind_rows(new_df, new_row)
+  tryCatch({
+    new_row <- event_url_to_response(game_df$id[n])
+    new_row <- setNames(new_row, column_names)
+    new_df <- bind_rows(new_df, new_row)
+  }, error = function(e) {
+    # Skip to the next iteration in case of an error
+    return(NULL)
+  })
 }
+
 
 american_to_prob <- function(american_odds) {
   probability <- case_when(
