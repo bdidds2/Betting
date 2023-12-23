@@ -392,7 +392,8 @@ athletic_week <- read.csv(text = gsheet2text("https://docs.google.com/spreadshee
 athletic_df <- athletic_raw %>%
   select(c(team, xmov, xtot, xwin)) %>%
   mutate(xwin = as.integer(gsub("%", "", xwin))/100,
-         game_number = ceiling(row_number()/2)) %>%
+         game_number = ceiling(row_number()/2),
+         xmov = ifelse(xmov == "even", 0, as.double(xmov))) %>%
   left_join(., team_table, by = c("team" = "name")) %>%
   mutate(team = abbr) %>%
   select(-c(location, full_name, abbr)) %>%
