@@ -33,7 +33,7 @@ url <- paste0(base, endpoint)
 
 response <- GET(url)
 
-bund_week_filter <- Sys.Date() + 5
+bund_week_filter <- Sys.Date() + 15
 
 # Check the response status
 bund_h2h_content <- fromJSON(content(response, "text")) %>%
