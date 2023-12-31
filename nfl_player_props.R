@@ -123,9 +123,9 @@ content_nfl_props <- fromJSON(content(response, "text")) %>%
                           commence_time >= as.Date("2023-12-07") & commence_time < as.Date("2023-12-12") ~ "week_14",
                           commence_time >= as.Date("2023-12-14") & commence_time < as.Date("2023-12-19") ~ "week_15",
                           commence_time >= as.Date("2023-12-21") & commence_time < as.Date("2023-12-26") ~ "week_16",
-                          commence_time >= as.Date("2023-12-28") & commence_time < as.Date("2023-01-02") ~ "week_17",
+                          commence_time >= as.Date("2023-12-28") & commence_time < as.Date("2024-01-02") ~ "week_17",
                           commence_time >= as.Date("2024-01-04") & commence_time < as.Date("2024-01-09") ~ "week_18",
-                          TRUE ~ "Unknown"),
+                          TRUE ~ "Playoffs"),
          week_filter = ifelse(commence_time <= as.Date(week_filter_date) & commence_time >= week_filter_date1, 1, 0))
 
 nfl_week_raw <- unique(content_nfl_props %>% filter(week_filter == 1) %>% select(week)) %>% pull()
