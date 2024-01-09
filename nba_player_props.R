@@ -377,7 +377,7 @@ nba_props_gt <- props_proj %>%
 
 #save props values html
 ifelse(class(nba_props_gt) != "try-error",
-       gtsave(nba_props_gt,filename = "nba_player_props.html"),
+       gtsave(nba_props_gt,filename = "NBA_Player_Props.html"),
        NA)
 
 
