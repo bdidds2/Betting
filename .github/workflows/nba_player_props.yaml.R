@@ -1,0 +1,60 @@
+on:
+  push:
+  branches: main
+
+schedule:
+  - cron: '0 22 * * 2'
+- cron: '0 22 * * 3'
+- cron: '0 22 * * 5'
+- cron: '0 11 * * 5'
+- cron: '0 22 * * 6'
+- cron: '0 22 * * 4'
+- cron: '0 22 * * 1'
+- cron: '0 22 * * 0'
+- cron: '0 6 * * 6'
+
+jobs:
+  import-data:
+  runs-on: ubuntu-latest
+steps:
+  - name: Set up R
+uses: r-lib/actions/setup-r@v2
+
+- name: Install packages
+uses: r-lib/actions/setup-r-dependencies@v2
+with:
+  packages: |
+  any::rvest
+any::dplyr
+any::tidyr
+any::tidyverse
+any::stringr
+any::gt
+any::readr
+any::gtExtras
+any::lubridate
+any::webshot2
+any::png
+any::jsonlite
+any::httr
+any::janitor
+any::openxlsx
+any::nflfastR
+any::nflreadr
+any::gsheet
+any::purrr
+any::worldfootballR
+
+- name: Check out repository
+uses: actions/checkout@v3
+
+- name: Import data
+run: Rscript -e 'source("nba_player_props.R")'
+
+- name: Commit results
+run: |
+  git config --local user.email "actions@github.com"
+  git config --local user.name "GitHub Actions"
+  git add NBA_Player_Props.html
+  git commit -m 'Data updated' || echo "No changes to commit"
+  git push origin || echo "No changes to commit"
