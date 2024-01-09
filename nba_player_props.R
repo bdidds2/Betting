@@ -7,10 +7,8 @@ library(jsonlite)
 library(lubridate)
 library(janitor)
 library(stringr)
-library(openxlsx)
 library(gt)
 library(gtExtras)
-library(nflfastR)
 library(png)
 library(webshot2)
 library(gsheet)
@@ -368,8 +366,8 @@ props_proj <- left_join(projections,
 nba_props_gt <- props_proj %>%
   arrange(commence_time) %>%
   select(c(game_time, game, player, min, site, play, outcome, number, point_dk, point_fd, odds_dk, odds_fd, prediction_diff_fd, prediction_diff_dk, filter_difference)) %>%
-  gt() #%>%
-#  opt_interactive(use_filters = TRUE)
+  gt() %>%
+  opt_interactive(use_filters = TRUE)
 
 # save projections --------------------------------------------------------
 
