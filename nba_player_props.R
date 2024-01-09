@@ -16,7 +16,7 @@ library(webshot2)
 library(gsheet)
 library(ggplot2)
 #library(oddsapiR)
-library(nbastatR)
+#library(nbastatR)
 
 # team table --------------------------------------------------------------
 
