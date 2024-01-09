@@ -25,21 +25,21 @@ uses: r-lib/actions/setup-r-dependencies@v2
 with:
   packages: |
   any::rvest
-any::dplyr
-any::tidyr
-any::tidyverse
-any::stringr
-any::gt
-any::readr
-any::gtExtras
-any::lubridate
-any::webshot2
-any::png
-any::jsonlite
-any::httr
-any::janitor
-any::purrr
-any::nbastatR
+  any::dplyr
+  any::tidyr
+  any::tidyverse
+  any::stringr
+  any::gt
+  any::readr
+  any::gtExtras
+  any::lubridate
+  any::webshot2
+  any::png
+  any::jsonlite
+  any::httr
+  any::janitor
+  any::purrr
+  any::nbastatR
 
 - name: Check out repository
 uses: actions/checkout@v3
@@ -51,6 +51,6 @@ run: Rscript -e 'source("nba_player_props.R")'
 run: |
   git config --local user.email "actions@github.com"
   git config --local user.name "GitHub Actions"
-  git add NBA_Player_Props.html
+  git add nba_player_props.html
   git commit -m 'Data updated' || echo "No changes to commit"
   git push origin || echo "No changes to commit"
