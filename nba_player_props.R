@@ -363,11 +363,37 @@ props_proj <- left_join(projections,
          play = factor(play, labels = c("Points", "Rebounds", "Assists", "PRA", "Steals", "Blocks", "Stocks", "Threes"),
                        levels = c("pts", "reb", "ast", "pra", "stl", "blk", "stock", "threes")))
 
-nba_props_gt <- props_proj %>%
+props_proj_grouped <- props_proj %>%
+  group_by(commence_time, game_time, game, player, play, outcome) %>%
+  summarize(avg_min = mean(min, na.rm = TRUE),
+            avg_number = round(mean(number, na.rm = TRUE), 1),
+            avg_point_dk = mean(point_dk, na.rm = TRUE),
+            avg_point_fd = mean(point_fd, na.rm = TRUE),
+            avg_odds_dk = mean(odds_dk, na.rm = TRUE),
+            avg_odds_fd = mean(odds_fd, na.rm = TRUE),
+            avg_pred_diff_dk = round(mean(prediction_diff_dk, na.rm = TRUE), 1),
+            avg_pred_diff_fd = round(mean(prediction_diff_fd, na.rm = TRUE), 1),
+            avg_diff = mean(filter_difference, na.rm = TRUE)) %>%
+  ungroup() %>%
+  filter(avg_diff > .5) %>%
+  mutate(side = ifelse(avg_number < avg_point_dk, "under", "over")) %>%
+  filter(outcome == side)
+
+nba_props_gt <- props_proj_grouped %>%
   arrange(commence_time) %>%
-  select(c(game_time, game, player, min, site, play, outcome, number, point_dk, point_fd, odds_dk, odds_fd, prediction_diff_fd, prediction_diff_dk, filter_difference)) %>%
+  select(c(game_time, game, player, avg_min, play, outcome, avg_number, avg_point_dk, avg_point_fd, avg_odds_dk, avg_odds_fd, avg_pred_diff_fd, avg_pred_diff_dk)) %>%
   gt() %>%
-  opt_interactive(use_filters = TRUE)
+  sub_missing(missing_text = "") %>%
+  cols_label(avg_number = "Projected",
+             avg_point_dk = "DK Line",
+             avg_point_fd = "FD Line",
+             avg_odds_dk = "DK Odds",
+             avg_odds_fd = "FD Odds",
+             avg_pred_diff_dk = "DK Delta",
+             avg_pred_diff_fd = "FD Delta") %>%
+  cols_width(game_time ~ px(40),
+             game ~ px(100)) %>%
+  tab_header(title = Sys.Date())
 
 # save projections --------------------------------------------------------
 
@@ -375,9 +401,8 @@ nba_props_gt <- props_proj %>%
 
 #save props values html
 ifelse(class(nba_props_gt) != "try-error",
-       gtsave(nba_props_gt,filename = "NBA_Player_Props.html"),
+       gtsave(nba_props_gt,filename = "NBA_Player_Props.png", expand = 30),
        NA)
-
 
 #save projections
 #current <- try({read_rds(file = paste0("NFL/predictions_props.rds"))}, silent = TRUE)
