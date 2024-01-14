@@ -59,6 +59,7 @@ jobs:
 
       - name: Commit results
         run: |
+          git pull origin
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add EPL.png
