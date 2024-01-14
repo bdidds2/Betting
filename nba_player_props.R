@@ -493,7 +493,7 @@ nba_props_gt <- props_proj_grouped %>%
 
 #save props values html
 ifelse(class(nba_props_gt) != "try-error",
-       gtsave(nba_props_gt,filename = "NBA_Player_Props.png", expand = 30, vheight = 100, vwidth = 500),
+       gtsave(nba_props_gt,filename = "NBA_Player_Props.png", expand = 100, vheight = 100, vwidth = 1000),
        NA)
 
 #save projections
