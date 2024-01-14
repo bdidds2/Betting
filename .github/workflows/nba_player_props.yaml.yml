@@ -4,7 +4,9 @@ on:
 
   schedule:
     - cron: '0 08 * * *'
+    - cron: '0 10 * * *'
     - cron: '0 12 * * *'
+    - cron: '0 14 * * *'
     - cron: '0 16 * * *'
     - cron: '0 18 * * *'
 
@@ -33,6 +35,7 @@ jobs:
             any::jsonlite
             any::httr
             any::janitor
+            any::hoopR
             
       - name: Check out repository
         uses: actions/checkout@v3

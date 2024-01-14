@@ -13,6 +13,7 @@ library(png)
 library(webshot2)
 library(gsheet)
 library(ggplot2)
+library(hoopR)
 #library(oddsapiR)
 #library(nbastatR)
 
@@ -228,6 +229,8 @@ sl <- sportsline_raw %>%
          blk = ifelse(is.na(blk), 0, blk),
          stl = as.double(stl),
          stl = ifelse(is.na(stl), 0, stl),
+         to = as.double(to),
+         to = ifelse(is.na(to), 0, stl),
          pra = pts + reb + ast,
          stock = blk + stl,
          game = gsub("@", " - ", game)) |>
@@ -341,6 +344,38 @@ projections <- bind_rows(sl, numberfire, razzball_final) %>%
                values_to = "number", names_to = "play")
 
 
+# nba stats ---------------------------------------------------------------
+
+stats <- load_nba_player_box()
+
+stats_player <- function(player_name, input_play, return_type) {
+  df1 <- stats %>%
+  filter(ejected == FALSE) %>%
+  filter(athlete_display_name == player_name) %>%
+  select(game_date, athlete_display_name, athlete_headshot_href, minutes, points, rebounds, assists, steals, blocks, three_point_field_goals_made) %>%
+  head(10) %>%
+  group_by(athlete_display_name, athlete_headshot_href) %>%
+  summarize(across(where(is.numeric), ~ mean(., na.rm = TRUE))) %>%
+  rename("player" = "athlete_display_name",
+         "min" = "minutes",
+         "headshot" = "athlete_headshot_href",
+         "pts" = "points",
+         "reb" = "rebounds",
+         "ast" = "assists",
+         "stl" = "steals",
+         "blk" = "blocks",
+         "threes" = "three_point_field_goals_made") %>%
+  mutate(stock = stl + blk,
+         pra = pts + reb + blk) %>%
+  ungroup() %>%
+  pivot_longer(cols = c(pts, reb, ast, stl, pra, blk, threes, stock), names_to = "play", values_to = "mean") %>%
+  mutate(play = factor(play, labels = c("Points", "Rebounds", "Assists", "PRA", "Steals", "Blocks", "Stocks", "Threes", "Turnovers"),
+                  levels = c("pts", "reb", "ast", "pra", "stl", "blk", "stock", "threes", "to")))
+  df2 <- df1 %>% filter(play == input_play) %>% pull(mean)
+  df3 <- df1 %>% filter(play == input_play) %>% pull(min)
+  return(ifelse(length(df2) > 0 & return_type == "mean", df2, ifelse(length(df3) > 0 & return_type == "min", df3, 0)))
+}
+  
 # props and projections ---------------------------------------------------
 
 props_proj <- left_join(projections, 
@@ -360,13 +395,13 @@ props_proj <- left_join(projections,
   filter(!is.na(book), !is.na(play)) %>%
   pivot_wider(names_from = "book", values_from = c("point", "prob", "prediction_diff", "odds")) %>%
   mutate(site = factor(site, labels = c("Razzball", "numberfire", "SportsLine"), levels = c("rz", "nf", "sl")),
-         play = factor(play, labels = c("Points", "Rebounds", "Assists", "PRA", "Steals", "Blocks", "Stocks", "Threes"),
-                       levels = c("pts", "reb", "ast", "pra", "stl", "blk", "stock", "threes")))
+         play = factor(play, labels = c("Points", "Rebounds", "Assists", "PRA", "Steals", "Blocks", "Stocks", "Threes", "Turnovers"),
+                       levels = c("pts", "reb", "ast", "pra", "stl", "blk", "stock", "threes", "to")))
 
 props_proj_grouped <- props_proj %>%
   group_by(commence_time, game_time, game, player, play, outcome) %>%
-  summarize(avg_min = mean(min, na.rm = TRUE),
-            avg_number = round(mean(number, na.rm = TRUE), 1),
+  summarize(projected_min = mean(min, na.rm = TRUE),
+            projected_number = round(mean(number, na.rm = TRUE), 1),
             avg_point_dk = mean(point_dk, na.rm = TRUE),
             avg_point_fd = mean(point_fd, na.rm = TRUE),
             avg_odds_dk = mean(odds_dk, na.rm = TRUE),
@@ -376,24 +411,81 @@ props_proj_grouped <- props_proj %>%
             avg_diff = mean(filter_difference, na.rm = TRUE)) %>%
   ungroup() %>%
   filter(avg_diff > .5) %>%
-  mutate(side = ifelse(avg_number < avg_point_dk, "under", "over")) %>%
-  filter(outcome == side)
+  mutate(side = ifelse(projected_number < avg_point_dk, "under", "over")) %>%
+  filter(outcome == side) %>%
+  rowwise() %>%
+  mutate(last10_mean = stats_player(player, play, "mean"),
+         last10_min = stats_player(player, play, "min")) %>%
+  left_join(., stats %>% distinct(athlete_display_name, athlete_headshot_href), by = c("player" = "athlete_display_name"), relationship = 'many-to-many') %>%
+  mutate(projected_compared_to_mean = projected_number - last10_mean,
+         projected_min_compared_to_mean = projected_min - last10_min,
+         projected_stat_per_min = projected_number / projected_min,
+         last10_stat_per_min = last10_mean / last10_min,
+         projected_stat_based_on_min = last10_stat_per_min * projected_min,
+         projected_stat_based_on_rate = projected_stat_per_min * last10_min,
+         rate_compared_last10 = projected_stat_per_min - last10_stat_per_min)
 
 nba_props_gt <- props_proj_grouped %>%
   arrange(commence_time) %>%
-  select(c(game_time, game, player, avg_min, play, outcome, avg_number, avg_point_dk, avg_point_fd, avg_odds_dk, avg_odds_fd, avg_pred_diff_fd, avg_pred_diff_dk)) %>%
+  select(c(game_time, game, athlete_headshot_href, player, play, outcome, projected_number, projected_min_compared_to_mean, rate_compared_last10, projected_stat_based_on_min, projected_stat_based_on_rate, avg_point_dk, avg_odds_dk, avg_pred_diff_dk, avg_point_fd, avg_odds_fd, avg_pred_diff_fd)) %>%
   gt() %>%
   sub_missing(missing_text = "") %>%
-  cols_label(avg_number = "Projected",
-             avg_point_dk = "DK Line",
-             avg_point_fd = "FD Line",
-             avg_odds_dk = "DK Odds",
-             avg_odds_fd = "FD Odds",
-             avg_pred_diff_dk = "DK Delta",
-             avg_pred_diff_fd = "FD Delta") %>%
+  fmt_number(columns = c("avg_pred_diff_dk", "avg_pred_diff_fd", "projected_min_compared_to_mean"),
+             force_sign = TRUE,
+             decimals = 1) %>%
+  fmt_number(columns = "rate_compared_last10",
+             force_sign = TRUE,
+             decimals = 2) %>%
+  fmt_number(columns = c("avg_odds_dk", "avg_odds_fd"),
+             force_sign = TRUE,
+             decimals = 0) %>%
+  fmt_number(columns = c("projected_stat_based_on_min", "projected_stat_based_on_rate", "projected_number"),
+             force_sign = FALSE,
+             decimals = 1) %>%
+  tab_spanner(columns = c(projected_min_compared_to_mean, rate_compared_last10),
+              label = "Compared to Last 10 Avg") %>%
+  tab_spanner(columns = c(projected_stat_based_on_min, projected_stat_based_on_rate),
+              label = "Projection Using Last 10 and Projected") %>%
+  tab_spanner(columns = c(avg_point_dk, avg_odds_dk, avg_pred_diff_dk),
+              label = "DraftKings") %>%
+  tab_spanner(columns = c(avg_point_fd, avg_odds_fd, avg_pred_diff_fd),
+              label = "FanDuel") %>%
+  cols_label(game_time = "Time",
+             athlete_headshot_href = "",
+             game = "Game",
+             player = "Player",
+             projected_number = "Projected",
+             avg_point_dk = "Line",
+             avg_point_fd = "Line",
+             avg_odds_dk = "Odds",
+             avg_odds_fd = "Odds",
+             avg_pred_diff_dk = "Delta",
+             avg_pred_diff_fd = "Delta",
+             play = "Play",
+             outcome = "Pick",
+             projected_min_compared_to_mean = "Minutes",
+             rate_compared_last10 = "Rate",
+             projected_stat_based_on_min = "Minutes",
+             projected_stat_based_on_rate = "Rate") %>%
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_body(columns = projected_number)) %>%
   cols_width(game_time ~ px(40),
              game ~ px(100)) %>%
-  tab_header(title = Sys.Date())
+  tab_header(title = paste0("NBA Player Props - ", Sys.Date())) %>%
+  gt_img_rows(athlete_headshot_href) %>%
+  data_color(
+    columns = c(avg_odds_dk,avg_odds_fd),
+    fn = function(x) {
+      colors <- ifelse(is.na(x), "white",
+        ifelse(x < -150, "red",
+                       ifelse(x >= -110, "green",
+                              scales::col_numeric(
+                                palette = c("red", "green"),
+                                domain = c(-170, -110)
+                              )(x))))
+      return(colors)
+    }
+  )
 
 # save projections --------------------------------------------------------
 
@@ -419,3 +511,6 @@ ifelse(class(nba_props_gt) != "try-error",
 #                    "NFL/predictions_props.rds")
 
 #try({write_rds(new2, file = new2_name)}, silent = TRUE)
+
+
+

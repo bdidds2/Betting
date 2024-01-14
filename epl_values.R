@@ -33,7 +33,7 @@ url <- paste0(base, endpoint)
 
 response <- GET(url)
 
-epl_week_filter <- Sys.Date() + 11
+epl_week_filter <- Sys.Date() + 6
 
 # Check the response status
 epl_h2h_content <- fromJSON(content(response, "text")) %>%
