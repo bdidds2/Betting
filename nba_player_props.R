@@ -473,6 +473,10 @@ nba_props_gt <- props_proj_grouped %>%
              game ~ px(100)) %>%
   tab_header(title = paste0("NBA Player Props - ", Sys.Date())) %>%
   gt_img_rows(athlete_headshot_href) %>%
+  tab_style(style = cell_borders(sides = "left"),
+            locations = cells_body(columns= c("avg_point_dk", "avg_point_fd"))) %>%
+  cols_align(align = "center",
+             columns = everything()) %>%
   data_color(
     columns = c(avg_odds_dk,avg_odds_fd),
     fn = function(x) {
@@ -493,7 +497,7 @@ nba_props_gt <- props_proj_grouped %>%
 
 #save props values html
 ifelse(class(nba_props_gt) != "try-error",
-       gtsave(nba_props_gt,filename = "NBA_Player_Props.png", expand = 100, vheight = 200, vwidth = 4000),
+       gtsave(nba_props_gt,filename = "NBA_Player_Props.png", expand = 100, vheight = 200, vwidth = 2000),
        NA)
 
 #save projections
