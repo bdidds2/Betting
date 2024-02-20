@@ -552,7 +552,7 @@ add_hitter <- function(roster_input = rosters, ottoneu_team, new_player) {
   for(i in new_player) {
     i <- replace_accents(i)
     roster_check <- rosters |> filter(name == i) |> arrange(desc(salary)) |> head(1) |> nrow()
-    new_roster_one <- rosters |> mutate(team_name = ifelse(player_name == i, ottoneu_team, team_name))
+    new_roster_one <- rosters |> mutate(team_name = ifelse(name == i, ottoneu_team, team_name))
     new_roster_two <- rosters |> add_row(team_id = rosters |> filter(team_name == ottoneu_team) |> head(1) |> pull(team_id),
                                          team_name = ottoneu_team,
                                          fg_major_league_id = players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(fg_major_league_id),
@@ -634,7 +634,7 @@ add_pitcher <- function(roster_input = rosters, ottoneu_team, new_player) {
   for(i in new_player) {
     i <- replace_accents(i)
     roster_check <- rosters |> filter(name == i) |> arrange(desc(salary)) |> head(1) |> nrow()
-    new_roster_one <- rosters |> mutate(team_name = ifelse(player_name == i, ottoneu_team, team_name))
+    new_roster_one <- rosters |> mutate(team_name = ifelse(name == i, ottoneu_team, team_name))
     new_roster_two <- rosters |> add_row(team_id = rosters |> filter(team_name == ottoneu_team) |> head(1) |> pull(team_id),
                                          team_name = ottoneu_team,
                                          fg_major_league_id = players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(fg_major_league_id),
