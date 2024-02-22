@@ -11,6 +11,7 @@ library(janitor)
 library(htmlwidgets)
 library(shiny)
 library(reactable)
+library(xml2)
 
 replacements <- c(
   # Lowercase letters
@@ -162,7 +163,9 @@ for (i in projection_systems) {
 }
 
 
-################### get rosters function
+
+# get rosters -------------------------------------------------------------
+
 
 get_rosters <- function(league_number) {
   rosters_url <- paste0("https://ottoneu.fangraphs.com/", as.character(league_number), "/rosterexport?csv=1")
@@ -176,7 +179,9 @@ get_rosters <- function(league_number) {
   return(rosters)
 }
 
-# get full player dfs
+
+# get full player dfs -----------------------------------------------------
+
 
 get_hitters <- function(roster_input = rosters) {
   hitters <- left_join(hitters_df, hitter_values |> select(c(playerid, system, dollars)), 
@@ -221,7 +226,9 @@ get_pitchers <- function(roster_input = rosters) {
 }
 
 
-# get transformed rostered players
+
+# get transformed rostered players ----------------------------------------
+
 
 get_rostered_hitters <- function(roster_input = rosters) {
   hitters <- get_hitters(roster_input)
@@ -282,7 +289,8 @@ get_rostered_pitchers <- function(roster_input = rosters) {
 }
 
 
-# get free agents
+
+# get free agents ---------------------------------------------------------
 
 get_fa_hitters <- function(roster_input = rosters) {
   hitters <- get_hitters(roster_input)
@@ -390,7 +398,24 @@ get_fa_pitchers <- function(roster_input = rosters) {
   return(pitchers_fa)
 }
 
-# get league projections
+
+# get league projections --------------------------------------------------
+
+recent_league_standings_url <- "https://ottoneu.fangraphs.com/1275/standings?date=2023-10-01"
+
+recent_league_standings <- as.data.frame(html_table(read_html(recent_league_standings_url))[2]) |>
+  clean_names() |>
+  select(-team) |>
+  head(11)
+
+recent_league_standings_function <- function(category, number) {
+  column_index <- which(colnames(recent_league_standings) == category)
+  category_performance <- recent_league_standings[, column_index]
+  added_number <- number
+  modified_category_performance <- append(category_performance, added_number)
+  added_number_points <- rank(modified_category_performance, ties.method = "min")[length(modified_category_performance)]
+  return(added_number_points)
+}
 
 get_scenarios_hitters <- function(roster_input = rosters) {
   league_scenarios_hitters_df <- get_rostered_hitters(roster_input) |>
@@ -415,7 +440,12 @@ get_scenarios_hitters <- function(roster_input = rosters) {
               rbi = sum(rbi),
               sb = sum(sb),
               avg = h / ab,
-              value = sum(value, na.rm = TRUE)) |>
+              value = sum(value, na.rm = TRUE),
+              r_rank_history = recent_league_standings_function("r", r),
+              rbi_rank_history = recent_league_standings_function("rbi", rbi),
+              hr_rank_history = recent_league_standings_function("hr", hr),
+              sb_rank_history = recent_league_standings_function("sb", sb),
+              avg_rank_history = recent_league_standings_function("avg", avg)) |>
     ungroup() |>
     group_by(index) |>
     mutate(r_rank = rank(r),
@@ -424,17 +454,22 @@ get_scenarios_hitters <- function(roster_input = rosters) {
            sb_rank = rank(sb),
            avg_rank = rank(avg),
            hitting_points = r_rank + rbi_rank + hr_rank + sb_rank + avg_rank,
+           hitting_points_history = r_rank_history + rbi_rank_history + hr_rank_history + sb_rank_history + avg_rank_history,
            #avg_to_target = avg - hitting_targets$avg,
            #hr_to_target = hr - hitting_targets$hr,
            #r_to_target = r - hitting_targets$r,
            #rbi_to_target = rbi - hitting_targets$rbi,
            #sb_to_target = sb - hitting_targets$sb,
-           combined_rank = rank(desc(hitting_points))) |>
+           combined_rank = rank(desc(hitting_points)),
+           combined_rank_history = rank(desc(hitting_points_history))) |>
     # Identify top 3 using indexing
     mutate(
-      first_place = combined_rank == c(1, 1.5),
+      first_place = combined_rank %in% c(1, 1.5),
       second_place = combined_rank %in% c(2, 2.5),
-      third_place = combined_rank %in% c(3, 3.5)) |>
+      third_place = combined_rank %in% c(3, 3.5),
+      first_place_history = combined_rank_history %in% c(1, 1.5),
+      second_place_history = combined_rank_history %in% c(2, 2.5),
+      third_place_history = combined_rank_history %in% c(3, 3.5)) |>
     ungroup() |>
     group_by(team_name) |>
     summarize(ab = mean(ab),
@@ -453,7 +488,16 @@ get_scenarios_hitters <- function(roster_input = rosters) {
               hitting_points = mean(hitting_points),
               first_place = sum(first_place) / 1000,
               second_place = sum(second_place) / 1000,
-              third_place = sum(third_place) / 1000) |>
+              third_place = sum(third_place) / 1000,
+              r_rank_history = mean(r_rank_history),
+              rbi_rank_history = mean(rbi_rank_history),
+              hr_rank_history = mean(hr_rank_history),
+              sb_rank_history = mean(sb_rank_history),
+              avg_rank_history = mean(avg_rank_history),
+              hitting_points_history = mean(hitting_points_history),
+              first_place_history = sum(first_place_history) / 1000,
+              second_place_history = sum(second_place_history) / 1000,
+              third_place_history = sum(third_place_history) / 1000) |>
     ungroup()
   return(league_scenarios_hitters_df)
 }
@@ -548,7 +592,7 @@ add_hitter <- function(roster_input = rosters, ottoneu_team, new_player) {
   rosters <- roster_input
   original <- get_scenarios_hitters(roster_input) |> 
     filter(team_name == ottoneu_team) |> 
-    select(c(team_name, hitting_points, first_place, second_place, third_place))
+    select(c(team_name, hitting_points, first_place, second_place, third_place, hitting_points_history))
   for(i in new_player) {
     i <- replace_accents(i)
     roster_check <- rosters |> filter(name == i) |> arrange(desc(salary)) |> head(1) |> nrow()
@@ -569,13 +613,14 @@ add_hitter <- function(roster_input = rosters, ottoneu_team, new_player) {
     
     updated <- get_scenarios_hitters(rosters_new) |> 
       filter(team_name == ottoneu_team) |> 
-      select(c(team_name, hitting_points, first_place, second_place, third_place))
+      select(c(team_name, hitting_points, first_place, second_place, third_place, hitting_points_history))
     change_df <- data.frame(player = i,
                             playerid = players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(fg_major_league_id),
                             hitting_point_change = updated$hitting_points - original$hitting_points,
                             first_place_change = updated$first_place - original$first_place,
                             second_place_change = updated$second_place - original$second_place,
-                            third_place_change = updated$third_place - original$third_place)
+                            third_place_change = updated$third_place - original$third_place,
+                            hitting_point_change_history = updated$hitting_points_history - original$hitting_points_history)
     change_df_original <- bind_rows(change_df_original, change_df)
   }
   return(change_df_original)
@@ -588,20 +633,23 @@ get_top_fa_hitters <- function(league_number, ottoneu_team, number = 10) {
     filter(!is.na(position)) |> 
     rowwise() |> 
     mutate(hitting_point_change = add_hitter(get_rosters(league_number), ottoneu_team, player_name) |> 
-             pull(hitting_point_change))
+             pull(hitting_point_change),
+           hitting_point_change_history = add_hitter(get_rosters(league_number), ottoneu_team, player_name) |> 
+             pull(hitting_point_change_history))
   return(top_fa_hitters)
 }
 
 top_fa_hitters_reactable <- function(league_number, ottoneu_team, number = 10) {
   top_fa_hitters <- get_top_fa_hitters(league_number, ottoneu_team, number) |>
-    select(c(player_name, position, hitting_point_change, dollars, hr, r, rbi, sb, avg)) |>
+    select(c(player_name, position, hitting_point_change, hitting_point_change_history, dollars, hr, r, rbi, sb, avg)) |>
     arrange(desc(hitting_point_change))
   reactable <- reactable(
     top_fa_hitters,
     columns = list(
       player_name = colDef(name = "Player", minWidth = 170, filterable = TRUE),
       position = colDef(name = "Position", maxWidth = 70, filterable = TRUE),
-      hitting_point_change = colDef(name = "Point Change", maxWidth = 80, format = colFormat(digits = 1)),
+      hitting_point_change = colDef(name = "Point Change", maxWidth = 100, format = colFormat(digits = 1)),
+      hitting_point_change_history = colDef(name = "Point Change in Last Year's Standings", maxWidth = 100, format = colFormat(digits = 1)),
       dollars = colDef(name = "Dollars", maxWidth = 62),
       hr = colDef(name = "HR"),
       r = colDef(name = "R"),
