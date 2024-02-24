@@ -659,38 +659,6 @@ top_fa_hitters_reactable <- function(league_number, ottoneu_team, number = 20) {
   top_fa_hitters <- get_top_fa_hitters2(league_number, ottoneu_team, number) |>
     select(c(player_name, position, dollars, hitting_point_change, dollars_per_spg, hitting_point_change_history, dollars_per_spg_py, hr, r, rbi, sb, avg)) |>
     arrange(desc(hitting_point_change))
-  reactable <- reactable(
-    top_fa_hitters,
-    columns = list(
-      player_name = colDef(name = "Player", minWidth = 200, filterable = TRUE),
-      position = colDef(name = "Position", minWidth = 75, filterable = TRUE),
-      hitting_point_change = colDef(name = "SPG Current", minWidth = 100, format = colFormat(digits = 1)),
-      hitting_point_change_history = colDef(name = "SPG Prior Year", minWidth = 100, format = colFormat(digits = 1)),
-      dollars = colDef(name = "$$", minWidth = 65),
-      dollars_per_spg = colDef(name = "$$/SPG", minWidth = 60, format = colFormat(digits = 1)),
-      dollars_per_spg_py = colDef(name = "$$/SPG PY", minWidth = 60, format = colFormat(digits = 1)),
-      hr = colDef(name = "HR"),
-      r = colDef(name = "R"),
-      rbi = colDef(name = "RBI"),
-      sb = colDef(name = "SB"),
-      avg = colDef(name = "Avg.", format = colFormat(digits = 3))),
-    defaultColDef = colDef(
-      header = function(value) gsub(".", " ", value, fixed = TRUE),
-    #cell = function(value) format(value, nsmall = 1),
-    #align = "center",
-    maxWidth = 200,
-    headerStyle = list(background = "#f7f7f8"),
-    format = colFormat(digits = 0)),
-    bordered = TRUE,
-    highlight = TRUE,
-    defaultPageSize = 20)
-  return(reactable)
-}
-
-top_fa_hitters_reactable <- function(league_number, ottoneu_team, number = 20) {
-  top_fa_hitters <- get_top_fa_hitters2(league_number, ottoneu_team, number) |>
-    select(c(player_name, position, dollars, hitting_point_change, dollars_per_spg, hitting_point_change_history, dollars_per_spg_py, hr, r, rbi, sb, avg)) |>
-    arrange(desc(hitting_point_change))
   coloring <- function(x) {
     x <- x[!is.na(x)]
     rgb(colorRamp(c("red", "white", "green"))(x), maxColorValue = 255)
