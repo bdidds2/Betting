@@ -418,18 +418,19 @@ recent_league_standings_function <- function(category, number) {
 }
 
 get_scenarios_hitters <- function(roster_input = rosters) {
+  iterations <- 10
   league_scenarios_hitters_df <- get_rostered_hitters(roster_input) |>
     filter(starting == 1, team_name != "Free Agent") |>
     group_by(team_name, player_name, playerid) |>
-    reframe(ab = (rnorm(n = 1000, mean = mean(ab, na.rm = TRUE), sd = sd(ab, na.rm = TRUE))),
-            h = (rnorm(n = 1000, mean = mean(h, na.rm = TRUE), sd = sd(h, na.rm = TRUE))),
-            hr = (rnorm(n = 1000, mean = mean(hr, na.rm = TRUE), sd = sd(hr, na.rm = TRUE))),
-            r = (rnorm(n = 1000, mean = mean(r, na.rm = TRUE), sd = sd(r, na.rm = TRUE))),
-            rbi = (rnorm(n = 1000, mean = mean(rbi, na.rm = TRUE), sd = sd(rbi, na.rm = TRUE))),
-            sb = (rnorm(n = 1000, mean = mean(sb, na.rm = TRUE), sd = sd(sb, na.rm = TRUE))),
+    reframe(ab = (rnorm(n = iterations, mean = mean(ab, na.rm = TRUE), sd = sd(ab, na.rm = TRUE))),
+            h = (rnorm(n = iterations, mean = mean(h, na.rm = TRUE), sd = sd(h, na.rm = TRUE))),
+            hr = (rnorm(n = iterations, mean = mean(hr, na.rm = TRUE), sd = sd(hr, na.rm = TRUE))),
+            r = (rnorm(n = iterations, mean = mean(r, na.rm = TRUE), sd = sd(r, na.rm = TRUE))),
+            rbi = (rnorm(n = iterations, mean = mean(rbi, na.rm = TRUE), sd = sd(rbi, na.rm = TRUE))),
+            sb = (rnorm(n = iterations, mean = mean(sb, na.rm = TRUE), sd = sd(sb, na.rm = TRUE))),
             avg = h / ab,
-            dollars = (rnorm(n = 1000, mean = mean(dollars, na.rm = TRUE), sd = sd(dollars, na.rm = TRUE))),
-            value = (rnorm(n = 1000, mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE))),
+            dollars = (rnorm(n = iterations, mean = mean(dollars, na.rm = TRUE), sd = sd(dollars, na.rm = TRUE))),
+            value = (rnorm(n = iterations, mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE))),
             index = row_number(dollars)) |>
     ungroup() |>
     group_by(team_name, index) |>
@@ -486,18 +487,18 @@ get_scenarios_hitters <- function(roster_input = rosters) {
               sb_rank = mean(sb_rank),
               avg_rank = mean(avg_rank),
               hitting_points = mean(hitting_points),
-              first_place = sum(first_place) / 1000,
-              second_place = sum(second_place) / 1000,
-              third_place = sum(third_place) / 1000,
+              first_place = sum(first_place) / iterations,
+              second_place = sum(second_place) / iterations,
+              third_place = sum(third_place) / iterations,
               r_rank_history = mean(r_rank_history),
               rbi_rank_history = mean(rbi_rank_history),
               hr_rank_history = mean(hr_rank_history),
               sb_rank_history = mean(sb_rank_history),
               avg_rank_history = mean(avg_rank_history),
               hitting_points_history = mean(hitting_points_history),
-              first_place_history = sum(first_place_history) / 1000,
-              second_place_history = sum(second_place_history) / 1000,
-              third_place_history = sum(third_place_history) / 1000) |>
+              first_place_history = sum(first_place_history) / iterations,
+              second_place_history = sum(second_place_history) / iterations,
+              third_place_history = sum(third_place_history) / iterations) |>
     ungroup()
   return(league_scenarios_hitters_df)
 }
@@ -639,25 +640,107 @@ get_top_fa_hitters <- function(league_number, ottoneu_team, number = 10) {
   return(top_fa_hitters)
 }
 
-top_fa_hitters_reactable <- function(league_number, ottoneu_team, number = 10) {
-  top_fa_hitters <- get_top_fa_hitters(league_number, ottoneu_team, number) |>
-    select(c(player_name, position, hitting_point_change, hitting_point_change_history, dollars, hr, r, rbi, sb, avg)) |>
+get_top_fa_hitters2 <- function(league_number, ottoneu_team, number = 10) {
+  rosters <- get_rosters(league_number)
+  top_fa_hitters <- get_fa_hitters(rosters) |> 
+    head(number) |> 
+    filter(!is.na(position)) |> 
+    rowwise() |> 
+    mutate(hitting_point_change = add_hitter(rosters, ottoneu_team, player_name) |> 
+             pull(hitting_point_change),
+           hitting_point_change_history = add_hitter(rosters, ottoneu_team, player_name) |> 
+             pull(hitting_point_change_history),
+           dollars_per_spg = dollars / hitting_point_change,
+           dollars_per_spg_py = dollars / hitting_point_change_history)
+  return(top_fa_hitters)
+}
+
+top_fa_hitters_reactable <- function(league_number, ottoneu_team, number = 20) {
+  top_fa_hitters <- get_top_fa_hitters2(league_number, ottoneu_team, number) |>
+    select(c(player_name, position, dollars, hitting_point_change, dollars_per_spg, hitting_point_change_history, dollars_per_spg_py, hr, r, rbi, sb, avg)) |>
     arrange(desc(hitting_point_change))
   reactable <- reactable(
     top_fa_hitters,
     columns = list(
-      player_name = colDef(name = "Player", minWidth = 170, filterable = TRUE),
-      position = colDef(name = "Position", maxWidth = 70, filterable = TRUE),
-      hitting_point_change = colDef(name = "Point Change", maxWidth = 100, format = colFormat(digits = 1)),
-      hitting_point_change_history = colDef(name = "Point Change in Last Year's Standings", maxWidth = 100, format = colFormat(digits = 1)),
-      dollars = colDef(name = "Dollars", maxWidth = 62),
+      player_name = colDef(name = "Player", minWidth = 200, filterable = TRUE),
+      position = colDef(name = "Position", minWidth = 75, filterable = TRUE),
+      hitting_point_change = colDef(name = "SPG Current", minWidth = 100, format = colFormat(digits = 1)),
+      hitting_point_change_history = colDef(name = "SPG Prior Year", minWidth = 100, format = colFormat(digits = 1)),
+      dollars = colDef(name = "$$", minWidth = 65),
+      dollars_per_spg = colDef(name = "$$/SPG", minWidth = 60, format = colFormat(digits = 1)),
+      dollars_per_spg_py = colDef(name = "$$/SPG PY", minWidth = 60, format = colFormat(digits = 1)),
       hr = colDef(name = "HR"),
       r = colDef(name = "R"),
       rbi = colDef(name = "RBI"),
       sb = colDef(name = "SB"),
       avg = colDef(name = "Avg.", format = colFormat(digits = 3))),
-    defaultColDef = colDef(format = colFormat(digits = 0))
-  )
+    defaultColDef = colDef(
+      header = function(value) gsub(".", " ", value, fixed = TRUE),
+    #cell = function(value) format(value, nsmall = 1),
+    #align = "center",
+    maxWidth = 200,
+    headerStyle = list(background = "#f7f7f8"),
+    format = colFormat(digits = 0)),
+    bordered = TRUE,
+    highlight = TRUE,
+    defaultPageSize = 20)
+  return(reactable)
+}
+
+top_fa_hitters_reactable <- function(league_number, ottoneu_team, number = 20) {
+  top_fa_hitters <- get_top_fa_hitters2(league_number, ottoneu_team, number) |>
+    select(c(player_name, position, dollars, hitting_point_change, dollars_per_spg, hitting_point_change_history, dollars_per_spg_py, hr, r, rbi, sb, avg)) |>
+    arrange(desc(hitting_point_change))
+  coloring <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("red", "white", "green"))(x), maxColorValue = 255)
+  }
+  coloring_opp <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("red", "white", "green"))(x), maxColorValue = 255)
+  }
+  
+  reactable <- reactable(
+    top_fa_hitters,
+    columns = list(
+      player_name = colDef(name = "Player", width = 150, filterable = TRUE),
+      position = colDef(name = "Position", width = 75, filterable = TRUE),
+      hitting_point_change = colDef(name = "SPG Current", width = 80, format = colFormat(digits = 1),
+                                    style = function(value) {
+                                      normalized <- (value - min(top_fa_hitters$hitting_point_change)) / (max(top_fa_hitters$hitting_point_change) - min(top_fa_hitters$hitting_point_change))
+                                      color <- coloring(normalized)
+                                      list(background = color)
+                                    }),
+      hitting_point_change_history = colDef(name = "SPG Prior Year", width = 80, format = colFormat(digits = 1),
+                                            style = function(value) {
+                                              normalized <- (value - min(top_fa_hitters$hitting_point_change_history)) / (max(top_fa_hitters$hitting_point_change_history) - min(top_fa_hitters$hitting_point_change_history))
+                                              color <- coloring(normalized)
+                                              list(background = color)
+                                            }),
+      dollars = colDef(name = "$$", width = 65,
+                       style = function(value) {
+                         normalized <- (value - min(top_fa_hitters$dollars)) / (max(top_fa_hitters$dollars) - min(top_fa_hitters$dollars))
+                         color <- coloring(normalized)
+                         list(background = color)
+                       }),
+      dollars_per_spg = colDef(name = "$$/SPG", width = 70, format = colFormat(digits = 1)),
+      dollars_per_spg_py = colDef(name = "$$/SPG PY", width = 70, format = colFormat(digits = 1)),
+      hr = colDef(name = "HR", width = 50),
+      r = colDef(name = "R", width = 50),
+      rbi = colDef(name = "RBI", width = 50),
+      sb = colDef(name = "SB", width = 50),
+      avg = colDef(name = "Avg.", format = colFormat(digits = 3)), width = 50),
+    defaultColDef = colDef(
+      header = function(value) gsub(".", " ", value, fixed = TRUE),
+      #cell = function(value) format(value, nsmall = 1),
+      #align = "center",
+      #wit = 200,
+      headerStyle = list(background = "#f7f7f8"),
+      format = colFormat(digits = 0)),
+    bordered = TRUE,
+    highlight = TRUE,
+    defaultPageSize = 20)
+  
   return(reactable)
 }
 
