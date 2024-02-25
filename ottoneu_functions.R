@@ -656,7 +656,7 @@ get_top_fa_hitters2 <- function(league_number, ottoneu_team, position_group_inpu
   return(top_fa_hitters)
 }
 
-top_fa_hitters_reactable <- function(league_number, ottoneu_team, position_group_intput = "All", number = 20) {
+top_fa_hitters_reactable <- function(league_number, ottoneu_team, position_group_input = "All", number = 20) {
   #ottoneu_teams <- as.data.frame(html_table(read_html(paste0("https://ottoneu.fangraphs.com/", league_number, "/standings")))[1]) |> select(Team) |> mutate(Team = trimws(gsub("[^a-zA-Z ]", "", Team))) |> as.vector()
   top_fa_hitters <- get_top_fa_hitters2(league_number, ottoneu_team, position_group_input, number) |>
     select(c(player_name, position, dollars, hitting_point_change, dollars_per_spg, hitting_point_change_history, dollars_per_spg_py, hr, r, rbi, sb, avg)) |>
