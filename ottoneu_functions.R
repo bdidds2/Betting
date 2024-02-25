@@ -503,6 +503,104 @@ get_scenarios_hitters <- function(roster_input = rosters) {
   return(league_scenarios_hitters_df)
 }
 
+get_scenarios_hitters2 <- function(roster_input = rosters) {
+  iterations <- 1
+  league_scenarios_hitters_df <- get_rostered_hitters(roster_input) |>
+    filter(starting == 1, team_name != "Free Agent") |>
+    group_by(team_name, player_name, playerid) |>
+    reframe(#ab = (Rnorm(n = iterations, m = mean(ab, na.rm = TRUE), s = sd(ab, na.rm = TRUE))),
+            #h = (Rnorm(n = iterations, m = mean(h, na.rm = TRUE), s = sd(h, na.rm = TRUE))),
+            #hr = (Rnorm(n = iterations, m = mean(hr, na.rm = TRUE), s = sd(hr, na.rm = TRUE))),
+            #r = (Rnorm(n = iterations, m = mean(r, na.rm = TRUE), s = sd(r, na.rm = TRUE))),
+            #rbi = (Rnorm(n = iterations, m = mean(rbi, na.rm = TRUE), s = sd(rbi, na.rm = TRUE))),
+            #sb = (Rnorm(n = iterations, m = mean(sb, na.rm = TRUE), s = sd(sb, na.rm = TRUE))),
+            #avg = h / ab,
+            #dollars = (Rnorm(n = iterations, m = mean(dollars, na.rm = TRUE), s = sd(dollars, na.rm = TRUE))),
+            #value = (Rnorm(n = iterations, m = mean(value, na.rm = TRUE), s = sd(value, na.rm = TRUE))),
+            #index = row_number(dollars)) |>
+            ab = mean(ab, na.rm = TRUE),
+            h = mean(h, na.rm = TRUE),
+            hr = mean(hr, na.rm = TRUE),
+            r = mean(r, na.rm = TRUE),
+            rbi = mean(rbi, na.rm = TRUE),
+            sb = mean(sb, na.rm = TRUE),
+            avg = h / ab,
+            dollars = mean(dollars, na.rm = TRUE),
+            value = mean(value, na.rm = TRUE),
+            index = row_number(dollars)) |>
+    ungroup() |>
+    group_by(team_name, index) |>
+    summarize(ab = sum(ab),
+              h = sum(h),
+              hr = sum(hr),
+              r = sum(r),
+              rbi = sum(rbi),
+              sb = sum(sb),
+              avg = h / ab,
+              value = sum(value, na.rm = TRUE),
+              r_rank_history = recent_league_standings_function("r", r),
+              rbi_rank_history = recent_league_standings_function("rbi", rbi),
+              hr_rank_history = recent_league_standings_function("hr", hr),
+              sb_rank_history = recent_league_standings_function("sb", sb),
+              avg_rank_history = recent_league_standings_function("avg", avg)) |>
+    ungroup() |>
+    group_by(index) |>
+    mutate(r_rank = rank(r),
+           rbi_rank = rank(rbi),
+           hr_rank = rank(hr),
+           sb_rank = rank(sb),
+           avg_rank = rank(avg),
+           hitting_points = r_rank + rbi_rank + hr_rank + sb_rank + avg_rank,
+           hitting_points_history = r_rank_history + rbi_rank_history + hr_rank_history + sb_rank_history + avg_rank_history,
+           #avg_to_target = avg - hitting_targets$avg,
+           #hr_to_target = hr - hitting_targets$hr,
+           #r_to_target = r - hitting_targets$r,
+           #rbi_to_target = rbi - hitting_targets$rbi,
+           #sb_to_target = sb - hitting_targets$sb,
+           combined_rank = rank(desc(hitting_points)),
+           combined_rank_history = rank(desc(hitting_points_history))) |>
+    # Identify top 3 using indexing
+    mutate(
+      first_place = combined_rank %in% c(1, 1.5),
+      second_place = combined_rank %in% c(2, 2.5),
+      third_place = combined_rank %in% c(3, 3.5),
+      first_place_history = combined_rank_history %in% c(1, 1.5),
+      second_place_history = combined_rank_history %in% c(2, 2.5),
+      third_place_history = combined_rank_history %in% c(3, 3.5)) |>
+    ungroup() |>
+    group_by(team_name) |>
+    summarize(ab = mean(ab),
+              h = mean(h),
+              hr = mean(hr),
+              r = mean(r),
+              rbi = mean(rbi),
+              sb = mean(sb),
+              avg = mean(avg),
+              value = mean(value),
+              r_rank = mean(r_rank),
+              rbi_rank = mean(rbi_rank),
+              hr_rank = mean(hr_rank),
+              sb_rank = mean(sb_rank),
+              avg_rank = mean(avg_rank),
+              hitting_points = mean(hitting_points),
+              first_place = sum(first_place) / iterations,
+              second_place = sum(second_place) / iterations,
+              third_place = sum(third_place) / iterations,
+              r_rank_history = mean(r_rank_history),
+              rbi_rank_history = mean(rbi_rank_history),
+              hr_rank_history = mean(hr_rank_history),
+              sb_rank_history = mean(sb_rank_history),
+              avg_rank_history = mean(avg_rank_history),
+              hitting_points_history = mean(hitting_points_history),
+              first_place_history = sum(first_place_history) / iterations,
+              second_place_history = sum(second_place_history) / iterations,
+              third_place_history = sum(third_place_history) / iterations) |>
+    ungroup()
+  return(league_scenarios_hitters_df)
+}
+
+
+
 get_scenarios_pitchers <- function(roster_input = rosters) {
   league_scenarios_pitchers_df <- get_rostered_pitchers(roster_input) |>
     filter(starting == 1, team_name != "Free Agent") |>
@@ -591,7 +689,7 @@ change_df_original <- data.frame(player = character(),
 
 add_hitter <- function(roster_input = rosters, ottoneu_team, new_player) {
   rosters <- roster_input
-  original <- get_scenarios_hitters(roster_input) |> 
+  original <- get_scenarios_hitters2(roster_input) |> 
     filter(team_name == ottoneu_team) |> 
     select(c(team_name, hitting_points, first_place, second_place, third_place, hitting_points_history))
   for(i in new_player) {
@@ -612,7 +710,7 @@ add_hitter <- function(roster_input = rosters, ottoneu_team, new_player) {
     
     rosters_new <- added_hitter
     
-    updated <- get_scenarios_hitters(rosters_new) |> 
+    updated <- get_scenarios_hitters2(rosters_new) |> 
       filter(team_name == ottoneu_team) |> 
       select(c(team_name, hitting_points, first_place, second_place, third_place, hitting_points_history))
     change_df <- data.frame(player = i,
