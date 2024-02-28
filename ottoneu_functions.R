@@ -895,7 +895,7 @@ get_top_fa_pitchers <- function(league_number, ottoneu_team, position_group_inpu
            pitching_point_change_history = add_pitcher(rosters, ottoneu_team, replace_accents(player_name)) |> 
              pull(pitching_point_change_history),
            dollars_per_spg = ifelse(pitching_point_change == 0, 0, dollars / pitching_point_change),
-           dollars_per_spg_py = ifelse(pitching_point_change_history ==0, dollars / pitching_point_change_history))
+           dollars_per_spg_py = ifelse(pitching_point_change_history == 0, 0, dollars / pitching_point_change_history))
   return(top_fa_pitchers)
 }
 
