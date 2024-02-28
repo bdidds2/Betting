@@ -414,7 +414,11 @@ recent_league_standings_function <- function(category, number) {
   added_number <- number
   modified_category_performance <- append(category_performance, added_number)
   added_number_points <- rank(modified_category_performance, ties.method = "min")[length(modified_category_performance)]
-  return(added_number_points)
+  added_number_points_oppo <- rank(-modified_category_performance, ties.method = "min")[length(modified_category_performance)]
+  added_number_points_final <- ifelse(category == "whip", added_number_points_oppo,
+                                      ifelse(category == "era", added_number_points_oppo,
+                                      added_number_points))
+  return(added_number_points_final)
 }
 
 get_scenarios_hitters <- function(roster_input = rosters) {
@@ -605,19 +609,19 @@ get_scenarios_pitchers <- function(roster_input = rosters) {
   league_scenarios_pitchers_df <- get_rostered_pitchers(roster_input) |>
     filter(starting == 1, team_name != "Free Agent") |>
     group_by(team_name, player_name, playerid) |>
-    reframe(ip = (rnorm(n = 1000, mean = mean(ip, na.rm = TRUE), sd = sd(ip, na.rm = TRUE))),
-            w = (rnorm(n = 1000, mean = mean(w, na.rm = TRUE), sd = sd(w, na.rm = TRUE))),
-            er = (rnorm(n = 1000, mean = mean(er, na.rm = TRUE), sd = sd(er, na.rm = TRUE))),
-            h = (rnorm(n = 1000, mean = mean(h, na.rm = TRUE), sd = sd(h, na.rm = TRUE))),
-            bb = (rnorm(n = 1000, mean = mean(bb, na.rm = TRUE), sd = sd(bb, na.rm = TRUE))),
-            sv = (rnorm(n = 1000, mean = mean(sv, na.rm = TRUE), sd = sd(sv, na.rm = TRUE))),
-            so = (rnorm(n = 1000, mean = mean(so, na.rm = TRUE), sd = sd(so, na.rm = TRUE))),
+    reframe(ip = mean(ip, na.rm = TRUE),
+            w = mean(w, na.rm = TRUE),
+            er = mean(er, na.rm = TRUE),
+            h = mean(h, na.rm = TRUE),
+            bb = mean(bb, na.rm = TRUE),
+            sv = mean(sv, na.rm = TRUE),
+            so = mean(so, na.rm = TRUE),
             whip = (h+bb) / ip,
             era = (er/ip) * 9,
             k_9 = so / (ip / 9),
             k_bb = so/bb,
-            dollars = (rnorm(n = 1000, mean = mean(dollars, na.rm = TRUE), sd = sd(dollars, na.rm = TRUE))),
-            value = (rnorm(n = 1000, mean = mean(value, na.rm = TRUE), sd = sd(value, na.rm = TRUE))),
+            dollars = mean(dollars, na.rm = TRUE),
+            value = mean(value, na.rm = TRUE),
             index = row_number(dollars)) |>
     ungroup() |>
     group_by(team_name, index) |>
@@ -632,7 +636,12 @@ get_scenarios_pitchers <- function(roster_input = rosters) {
               era = (er/ip) * 9,
               k_9 = so / (ip / 9),
               k_bb = so/bb,
-              value = sum(value, na.rm = TRUE)) |>
+              value = sum(value, na.rm = TRUE),
+              w_rank_history = recent_league_standings_function("wins", w),
+              sv_rank_history = recent_league_standings_function("sv", sv),
+              so_rank_history = recent_league_standings_function("k", so),
+              whip_rank_history = recent_league_standings_function("whip", whip),
+              era_rank_history = recent_league_standings_function("era", era)) |>
     ungroup() |>
     group_by(index) |>
     mutate(w_rank = rank(w),
@@ -641,17 +650,17 @@ get_scenarios_pitchers <- function(roster_input = rosters) {
            whip_rank = rank(whip),
            era_rank = rank(era),
            pitching_points = w_rank + sv_rank + so_rank + whip_rank + era_rank,
-           w_to_target = w - pitching_targets$w,
-           sv_to_target = sv - pitching_targets$sv,
-           so_to_target = so - pitching_targets$so,
-           whip_to_target = whip - pitching_targets$whip,
-           era_to_target = era - pitching_targets$era,
-           combined_rank = rank(desc(pitching_points))) |>
+           pitching_points_history = w_rank_history + sv_rank_history + so_rank_history + whip_rank_history + era_rank_history,
+           combined_rank = rank(desc(pitching_points)),
+           combined_rank_history = rank(desc(pitching_points_history))) |>
     # Identify top 3 using indexing
     mutate(
       first_place = combined_rank == c(1, 1.5),
       second_place = combined_rank %in% c(2, 2.5),
-      third_place = combined_rank %in% c(3, 3.5)) |>
+      third_place = combined_rank %in% c(3, 3.5),
+      first_place_history = combined_rank_history %in% c(1, 1.5),
+      second_place_history = combined_rank_history %in% c(2, 2.5),
+      third_place_history = combined_rank_history %in% c(3, 3.5)) |>
     ungroup() |>
     group_by(team_name) |>
     summarize(ip = mean(ip),
@@ -669,9 +678,18 @@ get_scenarios_pitchers <- function(roster_input = rosters) {
               whip_rank = mean(whip_rank),
               era_rank = mean(era_rank),
               pitching_points = mean(pitching_points),
-              first_place = sum(first_place) / 1000,
-              second_place = sum(second_place) / 1000,
-              third_place = sum(third_place) / 1000) |>
+              first_place = sum(first_place),
+              second_place = sum(second_place),
+              third_place = sum(third_place),
+              w_rank_history = mean(w_rank_history),
+              sv_rank_history = mean(sv_rank_history),
+              so_rank_history = mean(so_rank_history),
+              whip_rank_history = mean(whip_rank_history),
+              era_rank_history = mean(era_rank_history),
+              pitching_points_history = mean(pitching_points_history),
+              first_place_history = sum(first_place_history),
+              second_place_history = sum(second_place_history),
+              third_place_history = sum(third_place_history)) |>
     ungroup()
   return(league_scenarios_pitchers_df)
 }
@@ -749,8 +767,8 @@ get_top_fa_hitters2 <- function(league_number, ottoneu_team, position_group_inpu
              pull(hitting_point_change),
            hitting_point_change_history = add_hitter(rosters, ottoneu_team, player_name) |> 
              pull(hitting_point_change_history),
-           dollars_per_spg = dollars / hitting_point_change,
-           dollars_per_spg_py = dollars / hitting_point_change_history)
+           dollars_per_spg = ifelse(hitting_point_change == 0, 0, dollars / hitting_point_change),
+           dollars_per_spg_py = ifelse(hitting_point_change_history == 0, 0, dollars / hitting_point_change_history))
   return(top_fa_hitters)
 }
 
@@ -797,7 +815,7 @@ top_fa_hitters_reactable <- function(league_number, ottoneu_team, position_group
       r = colDef(name = "R", width = 50),
       rbi = colDef(name = "RBI", width = 50),
       sb = colDef(name = "SB", width = 50),
-      avg = colDef(name = "Avg.", format = colFormat(digits = 3)), width = 50),
+      avg = colDef(name = "Avg.", format = colFormat(digits = 3), width = 50)),
     defaultColDef = colDef(
       header = function(value) gsub(".", " ", value, fixed = TRUE),
       #cell = function(value) format(value, nsmall = 1),
@@ -829,7 +847,7 @@ add_pitcher <- function(roster_input = rosters, ottoneu_team, new_player) {
   rosters <- roster_input
   original <- get_scenarios_pitchers(roster_input) |> 
     filter(team_name == ottoneu_team) |> 
-    select(c(team_name, pitching_points, first_place, second_place, third_place))
+    select(c(team_name, pitching_points, first_place, second_place, third_place, pitching_points_history))
   for(i in new_player) {
     i <- replace_accents(i)
     roster_check <- rosters |> filter(name == i) |> arrange(desc(salary)) |> head(1) |> nrow()
@@ -843,32 +861,98 @@ add_pitcher <- function(roster_input = rosters, ottoneu_team, new_player) {
                                          position_s = players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(position_s),
                                          salary = players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(last_10))
     added_pitcher <- case_when(roster_check == 1 ~ list(new_roster_one), 
-                               TRUE ~ list(new_roster_two))
+                              TRUE ~ list(new_roster_two))
     added_pitcher <- added_pitcher[[1]]
     
     rosters_new <- added_pitcher
     
     updated <- get_scenarios_pitchers(rosters_new) |> 
       filter(team_name == ottoneu_team) |> 
-      select(c(team_name, pitching_points, first_place, second_place, third_place))
+      select(c(team_name, pitching_points, first_place, second_place, third_place, pitching_points_history))
     change_df <- data.frame(player = i,
-                            playerid = players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(fg_major_league_id),
+                            playerid = ifelse(length(players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(fg_major_league_id)) == 0, "0",
+                                              players |> filter(name == i) |> arrange(desc(avg_salary)) |> head(1) |> pull(fg_major_league_id)),
                             pitching_point_change = updated$pitching_points - original$pitching_points,
                             first_place_change = updated$first_place - original$first_place,
                             second_place_change = updated$second_place - original$second_place,
-                            third_place_change = updated$third_place - original$third_place)
+                            third_place_change = updated$third_place - original$third_place,
+                            pitching_point_change_history = updated$pitching_points_history - original$pitching_points_history)
     change_df_original_pitcher <- bind_rows(change_df_original_pitcher, change_df)
   }
   return(change_df_original_pitcher)
 }
 
 
-get_top_fa_pitchers <- function(league_number, ottoneu_team, number = 10) {
-  top_fa_pitchers <- get_fa_pitchers(get_rosters(league_number)) |> 
+get_top_fa_pitchers <- function(league_number, ottoneu_team, position_group_input = "All", number = 10) {
+  rosters <- get_rosters(league_number)
+  top_fa_pitchers <- get_fa_pitchers(rosters) |> 
+    filter(if (position_group_input != "All") grepl(position_group_input, position) else TRUE) |>
     head(number) |> 
     filter(!is.na(position)) |> 
     rowwise() |> 
-    mutate(pitching_point_change = add_pitcher(get_rosters(league_number), ottoneu_team, player_name) |> 
-             pull(pitching_point_change))
+    mutate(pitching_point_change = add_pitcher(rosters, ottoneu_team, replace_accents(player_name)) |> 
+             pull(pitching_point_change),
+           pitching_point_change_history = add_pitcher(rosters, ottoneu_team, replace_accents(player_name)) |> 
+             pull(pitching_point_change_history),
+           dollars_per_spg = ifelse(pitching_point_change == 0, 0, dollars / pitching_point_change),
+           dollars_per_spg_py = ifelse(pitching_point_change_history ==0, dollars / pitching_point_change_history))
   return(top_fa_pitchers)
+}
+
+top_fa_pitchers_reactable <- function(league_number, ottoneu_team, position_group_input = "All", number = 20) {
+  #ottoneu_teams <- as.data.frame(html_table(read_html(paste0("https://ottoneu.fangraphs.com/", league_number, "/standings")))[1]) |> select(Team) |> mutate(Team = trimws(gsub("[^a-zA-Z ]", "", Team))) |> as.vector()
+  top_fa_pitchers <- get_top_fa_pitchers(league_number, ottoneu_team, position_group_input, number) |>
+    select(c(player_name, position, dollars, pitching_point_change, dollars_per_spg, pitching_point_change_history, dollars_per_spg_py, w, sv, so, whip, era)) |>
+    arrange(desc(pitching_point_change))
+  coloring <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("red", "white", "green"))(x), maxColorValue = 255)
+  }
+  coloring_opp <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("red", "white", "green"))(x), maxColorValue = 255)
+  }
+  
+  reactable <- reactable(
+    top_fa_pitchers,
+    columns = list(
+      player_name = colDef(name = "Player", width = 150, filterable = TRUE),
+      position = colDef(name = "Position", width = 75, filterable = TRUE),
+      pitching_point_change = colDef(name = "SPG Current", width = 80, format = colFormat(digits = 1),
+                                    style = function(value) {
+                                      normalized <- (value - min(top_fa_pitchers$pitching_point_change)) / (max(top_fa_pitchers$pitching_point_change) - min(top_fa_pitchers$pitching_point_change))
+                                      color <- coloring(normalized)
+                                      list(background = color)
+                                    }),
+      pitching_point_change_history = colDef(name = "SPG Prior Year", width = 80, format = colFormat(digits = 1),
+                                            style = function(value) {
+                                              normalized <- (value - min(top_fa_pitchers$pitching_point_change_history)) / (max(top_fa_pitchers$pitching_point_change_history) - min(top_fa_pitchers$pitching_point_change_history))
+                                              color <- coloring(normalized)
+                                              list(background = color)
+                                            }),
+      dollars = colDef(name = "$$", width = 65,
+                       style = function(value) {
+                         normalized <- (value - min(top_fa_pitchers$dollars)) / (max(top_fa_pitchers$dollars) - min(top_fa_pitchers$dollars))
+                         color <- coloring(normalized)
+                         list(background = color)
+                       }),
+      dollars_per_spg = colDef(name = "$$/SPG", width = 70, format = colFormat(digits = 1)),
+      dollars_per_spg_py = colDef(name = "$$/SPG PY", width = 70, format = colFormat(digits = 1)),
+      w = colDef(name = "W", width = 50),
+      sv = colDef(name = "SV", width = 50),
+      so = colDef(name = "K", width = 50),
+      whip = colDef(name = "WHIP", format = colFormat(digits = 2), width = 50),
+      era = colDef(name = "ERA", format = colFormat(digits = 2), width = 50)),
+    defaultColDef = colDef(
+      header = function(value) gsub(".", " ", value, fixed = TRUE),
+      #cell = function(value) format(value, nsmall = 1),
+      #align = "center",
+      #wit = 200,
+      headerStyle = list(background = "#f7f7f8"),
+      format = colFormat(digits = 0)),
+    bordered = TRUE,
+    highlight = TRUE,
+    defaultPageSize = 20)
+  
+  return(reactable)
 }
