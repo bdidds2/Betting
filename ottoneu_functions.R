@@ -1148,7 +1148,7 @@ free_agent_hitters <- function(league_id){
       sb_per600 = colDef(name = "SB Rate", align = "center")
     ),
     defaultColDef = colDef(minWidth = 62, format = colFormat(digits = 0)),
-    defaultPageSize = 100,
+    defaultPageSize = 20,
     fullWidth = FALSE,
     style = list(fontFamily = "Work Sans, sans-serif"),
     details = function(index){
@@ -1314,7 +1314,7 @@ free_agent_pitchers <- function(league_id){
       k_bb = colDef(name = "K-BB", align = "center", format = colFormat(digits = 1))
     ),
     defaultColDef = colDef(minWidth = 62, format = colFormat(digits = 0)),
-    defaultPageSize = 50,
+    defaultPageSize = 20,
     fullWidth = TRUE,
     style = list(fontFamily = "Work Sans, sans-serif"),
     details = function(index){
