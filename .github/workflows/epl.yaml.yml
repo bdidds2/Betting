@@ -69,5 +69,6 @@ jobs:
           git add LaLiga.png
           git add Bundesliga.png
           git add Soccer/*
+          git add ottoneu_functions.R
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
