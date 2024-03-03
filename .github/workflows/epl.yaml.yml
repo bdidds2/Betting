@@ -44,6 +44,9 @@ jobs:
             any::gsheet
             any::purrr
             any::worldfootballR
+            any::shiny
+            any::reactable
+            any::xml2
 
       - name: Check out repository
         uses: actions/checkout@v3
