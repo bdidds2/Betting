@@ -61,7 +61,7 @@ jobs:
         run: Rscript -e 'source("laliga_values.R")'
         
       - name: Import data four  
-        run: Rscript -e 'source("ottoneu_functions.R")'
+        run: Rscript ottoneu_functions.R
 
       - name: Commit results
         run: |
