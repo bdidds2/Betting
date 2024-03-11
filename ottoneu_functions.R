@@ -1337,3 +1337,17 @@ free_agent_pitchers <- function(league_id){
   #return(output2)
   reactable_pitchers
 }
+
+# dani rojas ---------------------------------------------------------
+
+dani_rojas_hitters <- free_agent_hitters(1275)
+
+dani_rojas_pitchers <- free_agent_pitchers(1275)
+
+# bum bum ---------------------------------------------------------
+
+bum_bum_hitters <- free_agent_hitters(1023)
+
+bum_bum_pitchers <- free_agent_pitchers(1023)
+
+
