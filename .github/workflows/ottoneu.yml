@@ -1,0 +1,56 @@
+on:
+  push:
+    branches: main
+
+  schedule:
+    - cron: '0 22 * * 2'
+    - cron: '0 22 * * 3'
+    - cron: '0 22 * * 5'
+    - cron: '0 11 * * 5'
+    - cron: '0 22 * * 6'
+    - cron: '0 22 * * 4'
+    - cron: '0 22 * * 1'
+    - cron: '0 22 * * 0'
+    - cron: '0 6 * * 6'
+
+jobs:
+  import-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Install packages
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::httr
+            any::dplyr
+            any::rvest
+            any::jsonlite
+            any::tidyr
+            any::purrr
+            any::tidyverse
+            any::janitor
+            any::htmlwidgets
+            any::shiny
+            any::reactable
+            any::xml2
+
+      - name: Check out repository
+        uses: actions/checkout@v3
+        
+      - name: Import data four  
+        run: Rscript ottoneu_functions.R
+
+      - name: Commit results
+        run: |
+          git pull origin
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add bum_bum_hitters.rds
+          git add bum_bum_pitchers.rds
+          git add dani_rojas_hitters.rds
+          git add dani_rojas_pitchers.rds
+          git commit -m 'Data updated' || echo "No changes to commit"
+          git push origin || echo "No changes to commit"
