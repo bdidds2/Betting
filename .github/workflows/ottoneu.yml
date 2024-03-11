@@ -48,10 +48,6 @@ jobs:
           git pull origin
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add ottoneu/bum_bum_hitters.rds
-          git add ottoneu/bum_bum_pitchers.rds
-          git add ottoneu/dani_rojas_hitters.rds
-          git add ottoneu/dani_rojas_pitchers.rds
           git add ottoneu/bum_bum_hitters.csv
           git add ottoneu/bum_bum_pitchers.csv
           git add ottoneu/dani_rojas_hitters.csv
