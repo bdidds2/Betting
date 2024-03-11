@@ -1767,18 +1767,21 @@ free_agent_pitchers_reactable <- function(league_id, df) {
 
 dani_rojas_hitters <- free_agent_hitters_rds(1275)
 write_rds(dani_rojas_hitters, file = "ottoneu/dani_rojas_hitters.rds")
+write.csv(dani_rojas_hitters, file = "ottoneu/dani_rojas_hitters.csv")
 
 dani_rojas_pitchers <- free_agent_pitchers_rds(1275)
 write_rds(dani_rojas_pitchers, file = "ottoneu/dani_rojas_pitchers.rds")
+write.csv(dani_rojas_pitchers, file = "ottoneu/dani_rojas_pitchers.csv")
 
 
 # bum bum ---------------------------------------------------------
 
 bum_bum_hitters <- free_agent_hitters_rds(1023)
 write_rds(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.rds")
+write.csv(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.csv")
 
 bum_bum_pitchers <- free_agent_hitters_rds(1023)
 write_rds(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.rds")
-
+write.csv(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.csv")
 
 
