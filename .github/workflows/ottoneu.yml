@@ -52,5 +52,9 @@ jobs:
           git add ottoneu/bum_bum_pitchers.rds
           git add ottoneu/dani_rojas_hitters.rds
           git add ottoneu/dani_rojas_pitchers.rds
+          git add ottoneu/bum_bum_hitters.csv
+          git add ottoneu/bum_bum_pitchers.csv
+          git add ottoneu/dani_rojas_hitters.csv
+          git add ottoneu/dani_rojas_pitchers.csv
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
