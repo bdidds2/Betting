@@ -48,9 +48,9 @@ jobs:
           git pull origin
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add bum_bum_hitters.rds
-          git add bum_bum_pitchers.rds
-          git add dani_rojas_hitters.rds
-          git add dani_rojas_pitchers.rds
+          git add ottoneu/bum_bum_hitters.rds
+          git add ottoneu/bum_bum_pitchers.rds
+          git add ottoneu/dani_rojas_hitters.rds
+          git add ottoneu/dani_rojas_pitchers.rds
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"

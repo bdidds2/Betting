@@ -1341,19 +1341,19 @@ free_agent_pitchers <- function(league_id){
 # dani rojas ---------------------------------------------------------
 
 dani_rojas_hitters <- free_agent_hitters(1275)
-write_rds(dani_rojas_hitters, file = paste0("ottoneu/dani_rojas_hitters.rds"))
+write_rds(dani_rojas_hitters, file = "ottoneu/dani_rojas_hitters.rds")
 
 dani_rojas_pitchers <- free_agent_pitchers(1275)
-write_rds(dani_rojas_pitchers, file = paste0("ottoneu/dani_rojas_pitchers.rds"))
+write_rds(dani_rojas_pitchers, file = "ottoneu/dani_rojas_pitchers.rds")
 
 
 # bum bum ---------------------------------------------------------
 
 bum_bum_hitters <- free_agent_hitters(1023)
-write_rds(bum_bum_hitters, file = paste0("ottoneu/bum_bum_hitters.rds"))
+write_rds(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.rds")
 
 bum_bum_pitchers <- free_agent_pitchers(1023)
-write_rds(bum_bum_pitchers, file = paste0("ottoneu/bum_bum_pitchers.rds"))
+write_rds(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.rds")
 
 
 
