@@ -1786,3 +1786,383 @@ bum_bum_pitchers <- free_agent_hitters_rds(1023)
 write.csv(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.csv")
 
 
+# all players -------------------------------------------------------------
+
+# hitters
+hitters <- left_join(hitters_df, hitter_values |> select(c(playerid, system, dollars)), 
+                       by = c("playerid"="playerid", "system" = "system")) |>
+    left_join(players |> select(fg_major_league_id, avg_salary, last_10, roster, position_s), 
+              by = c("playerid" = "fg_major_league_id")) |>
+    rename("position" = "position_s") |>
+    select(-minpos) |>
+    mutate(hr_per600 = (600/ab)*hr,
+           r_per600 = (600/ab)*r,
+           rbi_per600 = (600/ab)*rbi,
+           sb_per600 = (600/ab)*sb)
+  
+  #get and format free agents
+free_agent_all_hitters_rds <- hitters |>
+    mutate(position_group = case_when(grepl("OF", position) ~ "OF",
+                                      grepl("2B", position) ~ "MI",
+                                      grepl("SS", position) ~ "MI",
+                                      grepl("3B", position) ~ "CI",
+                                      grepl("1B", position) ~ "CI",
+                                      grepl("C", position) ~ "C",
+                                      TRUE ~ position)) |>
+    group_by(position_group, playerid) |>
+    summarize(dollars_avg = mean(dollars, na.rm = TRUE)) |>
+    group_by(position_group) |>
+    mutate(position_group_rank = rank(-dollars_avg)) |>
+    ungroup() |>
+    select(c(playerid, dollars_avg, position_group, position_group_rank)) |>
+    left_join(hitters, by = "playerid", relationship = "many-to-many") |>
+    mutate(position_roup_rank = paste0(position_group, position_group_rank),
+           starting = case_when(position_group == "C" & position_group_rank == 1 ~ 1,
+                                position_group == "CI" & position_group_rank <= 2 ~ 1,
+                                position_group == "MI" & position_group_rank <= 3 ~ 1,
+                                position_group == "OF" & position_group_rank <= 5 ~ 1,
+                                position_group == "DH" & position_group_rank == 1 ~ 1,
+                                TRUE ~ 0)) |>
+    group_by(player_name, playerid, position_group, position_group_rank, position) |>
+    summarize(ab = mean(ab),
+              h = mean(h),
+              hr = mean(hr),
+              r = mean(r),
+              rbi = mean(rbi),
+              sb = mean(sb),
+              dollars_sd = sd(dollars),
+              dollars = mean(dollars_avg)) |>
+    ungroup() |>
+    mutate(avg = h / ab) |>
+    arrange(desc(dollars)) |>
+    rowwise() %>%
+    mutate(
+      catcher = ifelse(grepl("C", position), "C", ""),
+      first = ifelse(grepl("1B", position), "CI", ""),
+      third = ifelse(grepl("3B", position), "CI", ""),
+      second = ifelse(grepl("2B", position), "MI", ""),
+      shortstop = ifelse(grepl("SS", position), "MI", ""),
+      outfield = ifelse(grepl("OF", position), "OF", ""),
+      ut = ifelse(grepl("UT", position), "UT", ""),
+      position_group2 = trimws(paste(
+        catcher, first, second, shortstop, third, outfield, ut,
+        collapse = "/"
+      ))
+    ) |>
+    ungroup() |>
+    mutate(position_group2 = trimws(gsub(" ", "/", position_group2)),
+           position_group2 = gsub("///", "/", position_group2),
+           position_group2 = gsub("//", "/", position_group2),
+           position_group2 = gsub("//", "/", position_group2),
+           position_group2 = gsub("//", "/", position_group2),
+           position_group2 = gsub("MI/MI", "MI", position_group2),
+           position_group2 = gsub("CI/CI", "CI", position_group2),
+           position_group = position_group2) |>
+    select(-c(catcher, first, third, shortstop, second, outfield, ut, position_group2)) |>
+    select(c(player_name, position_group, position_group_rank, position, dollars, dollars_sd, h, hr, r, rbi, sb, avg, ab)) |>
+    mutate(hr_per600 = (600/ab)*hr,
+           r_per600 = (600/ab)*r,
+           rbi_per600 = (600/ab)*rbi,
+           sb_per600 = (600/ab)*sb) %>%
+    head(500)
+
+free_agent_hitters_all_reactable <- function(df) {
+  
+  #get hitters
+  hitters <- left_join(hitters_df, hitter_values |> select(c(playerid, system, dollars)), 
+                       by = c("playerid"="playerid", "system" = "system")) |>
+    left_join(players |> select(fg_major_league_id, avg_salary, last_10, roster, position_s), 
+              by = c("playerid" = "fg_major_league_id")) |>
+    rename("position" = "position_s") |>
+    select(-minpos) |>
+    mutate(hr_per600 = (600/ab)*hr,
+           r_per600 = (600/ab)*r,
+           rbi_per600 = (600/ab)*rbi,
+           sb_per600 = (600/ab)*sb)
+  #hitters sub table
+  hitters_risk <- bind_rows(
+    hitters |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ab, hr, r, rbi, sb, hr_per600, r_per600, rbi_per600, sb_per600), \(x) mean(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "average"),
+    hitters |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ab, hr, r, rbi, sb, hr_per600, r_per600, rbi_per600, sb_per600), \(x) sd(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "sd"),
+    hitters |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ab, hr, r, rbi, sb, hr_per600, r_per600, rbi_per600, sb_per600), \(x) min(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "min"),
+    hitters |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ab, hr, r, rbi, sb, hr_per600, r_per600, rbi_per600, sb_per600), \(x) max(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "max"),
+    hitters |>
+      select(c(player_name, playerid, position, dollars, ab, hr, r, rbi, sb, hr_per600, r_per600, rbi_per600, sb_per600, system)))
+  
+  
+  #reactable
+  hitters_react <- df |> filter(!is.nan(dollars)) |> select(-c(h))
+  coloring <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("red", "white", "green"))(x), maxColorValue = 255)
+  }
+  coloring_opp <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("green", "white", "red"))(x), maxColorValue = 255)
+  }
+  
+  # Define the table
+  reactable_hitters <- reactable(
+    hitters_react,
+    columns = list(
+      player_name = colDef(name = "Player", minWidth = 170, filterable = TRUE),
+      position_group = colDef(name = "Position Group", minWidth = 100, filterable = TRUE),
+      position_group_rank = colDef(name = "Rank", align = "center"),
+      position = colDef(name = "Position", minWidth = 100, filterable = TRUE),
+      dollars = colDef(name = "$$", align = "center",
+                       style = function(value) {
+                         normalized <- (value - min(hitters_react$dollars)) / (max(hitters_react$dollars) - min(hitters_react$dollars))
+                         color <- coloring(normalized)
+                         list(background = color)
+                       }),
+      dollars_sd = colDef(name = "$ sd", align = "center",
+                          style = function(value) {
+                            normalized <- (value - min(hitters_react$dollars_sd, na.rm = TRUE)) / (max(hitters_react$dollars_sd, na.rm = TRUE) - min(hitters_react$dollars_sd, na.rm = TRUE))
+                            color <- coloring_opp(normalized)
+                            list(background = color)
+                          }),
+      hr = colDef(name = "HR", align = "center",
+                  style = function(value) {
+                    normalized <- (value - min(hitters_react$hr)) / (max(hitters_react$hr) - min(hitters_react$hr))
+                    color <- coloring(normalized)
+                    list(background = color)
+                  }),
+      r = colDef(name = "Runs", align = "center",
+                 style = function(value) {
+                   normalized <- (value - min(hitters_react$r)) / (max(hitters_react$r) - min(hitters_react$r))
+                   color <- coloring(normalized)
+                   list(background = color)
+                 }),
+      rbi = colDef(name = "RBI", align = "center",
+                   style = function(value) {
+                     normalized <- (value - min(hitters_react$rbi)) / (max(hitters_react$rbi) - min(hitters_react$rbi))
+                     color <- coloring(normalized)
+                     list(background = color)
+                   }),
+      sb = colDef(name = "SB", align = "center",
+                  style = function(value) {
+                    normalized <- (value - min(hitters_react$sb)) / (max(hitters_react$sb) - min(hitters_react$sb))
+                    color <- coloring(normalized)
+                    list(background = color)
+                  }),
+      avg = colDef(name = "Avg", align = "center", format = colFormat(digits = 3),
+                   style = function(value) {
+                     normalized <- (value - min(hitters_react$avg)) / (max(hitters_react$avg) - min(hitters_react$avg))
+                     color <- coloring(normalized)
+                     list(background = color)
+                   }),
+      ab = colDef(name = "AB", align = "center"),
+      hr_per600 = colDef(name = "HR Rate", align = "center"),
+      r_per600 = colDef(name = "R Rate", align = "center"),
+      rbi_per600 = colDef(name = "RBI Rate", align = "center"),
+      sb_per600 = colDef(name = "SB Rate", align = "center")
+    ),
+    defaultColDef = colDef(minWidth = 62, format = colFormat(digits = 0)),
+    defaultPageSize = 20,
+    fullWidth = FALSE,
+    style = list(fontFamily = "Work Sans, sans-serif"),
+    details = function(index){
+      #risk_data <- CO2[CO2$Plant == data$Plant[index], ]
+      risk_data <- hitters_risk[hitters_risk$player_name == hitters_react$player_name[index], ]
+      risk_data_1 <- risk_data |> select(c(system, dollars, ab, hr, r, rbi, sb, hr_per600, r_per600, rbi_per600, sb_per600)) |> rename("scenario" = "system")
+      htmltools::div(style = "padding: 1rem",
+                     reactable(risk_data_1, outlined = TRUE,
+                               defaultColDef = colDef(maxWidth = 80, format = colFormat(digits = 0)))
+      )
+    }
+  )
+  #output2 <- ifelse(output == "df", hitters_fa, ifelse(output == "table", reactable_hitters, "error"))
+  #return(output2)
+  reactable_hitters
+}
+
+
+
+# pitchers
+
+pitchers <- left_join(pitchers_df, pitcher_values |> select(c(playerid, system, dollars)), 
+                      by = c("playerid"="playerid", "system" = "system")) |>
+  left_join(players |> select(fg_major_league_id, avg_salary, last_10, roster, position_s), 
+            by = c("playerid" = "fg_major_league_id")) |>
+  rename("position" = "position_s") |>
+  mutate(whip = (h+bb) / ip,
+         era = (er/ip) * 9,
+         k_9 = so / (ip/9),
+         bb_9 = bb / (ip/9),
+         k_bb = so/bb) |>
+  filter(!is.na(dollars))
+
+free_agent_all_pitchers_rds <- pitchers |>
+    group_by(position, playerid) |>
+    summarize(dollars_avg = mean(dollars, na.rm = TRUE)) |>
+    ungroup() |>
+    mutate(position_rank = rank(-dollars_avg)) |>
+    ungroup() |>
+    select(c(playerid, dollars_avg, position, position_rank)) |>
+    left_join(pitchers |> select(-c(position)), by = "playerid", relationship = "many-to-many") |>
+    mutate(position_rank = paste0(position, position_rank)) |>
+    group_by(player_name, playerid, position, position_rank) |>
+    summarize(ip = mean(ip),
+              w = mean(w),
+              er = mean(er),
+              h = mean(h),
+              bb = mean(bb),
+              sv = mean(sv),
+              so = mean(so),
+              dollars_sd = sd(dollars),
+              dollars = mean(dollars_avg)) |>
+    ungroup() |>
+    mutate(whip = (h+bb) / ip,
+           era = (er/ip) * 9,
+           k_9 = so / (ip/9),
+           bb_9 = bb / (ip/9),
+           k_bb = so/bb) |>
+    select(c(player_name, position, position_rank, dollars, dollars_sd, w, so, sv, era, whip, ip, k_9, k_bb)) %>%
+    head(2000)
+
+free_agent_pitchers_all_reactable <- function(df) {
+  #reactable
+  pitchers_react <- df |> filter(!is.nan(dollars), era < 5.75) |> arrange(desc(dollars))
+  coloring <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("red", "white", "green"))(x), maxColorValue = 255)
+  }
+  coloring_opp <- function(x) {
+    x <- x[!is.na(x)]
+    rgb(colorRamp(c("green", "white", "red"))(x), maxColorValue = 255)
+  }
+  
+  #get pitchers
+  pitchers <- left_join(pitchers_df, pitcher_values |> select(c(playerid, system, dollars)), 
+                        by = c("playerid"="playerid", "system" = "system")) |>
+    left_join(players |> select(fg_major_league_id, avg_salary, last_10, roster, position_s), 
+              by = c("playerid" = "fg_major_league_id")) |>
+    rename("position" = "position_s") |>
+    mutate(whip = (h+bb) / ip,
+           era = (er/ip) * 9,
+           k_9 = so / (ip/9),
+           bb_9 = bb / (ip/9),
+           k_bb = so/bb) |>
+    filter(!is.na(dollars))
+  #hitters sub table
+  pitchers_risk <- bind_rows(
+    pitchers |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ip, w, sv, so, era, whip, k_9, bb_9, k_bb), \(x) mean(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "average"),
+    pitchers |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ip, w, sv, so, era, whip, k_9, bb_9, k_bb), \(x) sd(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "sd"),
+    pitchers |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ip, w, sv, so, era, whip, k_9, bb_9, k_bb), \(x) min(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "min"),
+    pitchers |>
+      group_by(player_name, playerid, position) |>
+      summarize(across(c(dollars, ip, w, sv, so, era, whip, k_9, bb_9, k_bb), \(x) max(x, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(system = "max"),
+    pitchers |>
+      select(c(player_name, playerid, position, dollars, ip, w, sv, so, era, whip, k_9, bb_9, k_bb, system)))
+  
+  # Define the table
+  reactable_pitchers <- reactable(
+    pitchers_react,
+    columns = list(
+      player_name = colDef(name = "Player", minWidth = 170, filterable = TRUE),
+      position = colDef(name = "Position", maxWidth = 80, filterable = TRUE),
+      position_rank = colDef(name = "Rank", align = "center"),
+      dollars = colDef(name = "$$", align = "center",
+                       style = function(value) {
+                         normalized <- (value - min(pitchers_react$dollars)) / (max(pitchers_react$dollars) - min(pitchers_react$dollars))
+                         color <- coloring(normalized)
+                         list(background = color)
+                       }),
+      dollars_sd = colDef(name = "$ sd", align = "center",
+                          style = function(value) {
+                            normalized <- (value - min(pitchers_react$dollars_sd, na.rm = TRUE)) / (max(pitchers_react$dollars_sd, na.rm = TRUE) - min(pitchers_react$dollars_sd, na.rm = TRUE))
+                            color <- coloring_opp(normalized)
+                            list(background = color)
+                          }),
+      w = colDef(name = "W", align = "center",
+                 style = function(value) {
+                   normalized <- (value - min(pitchers_react$w)) / (max(pitchers_react$w) - min(pitchers_react$w))
+                   color <- coloring(normalized)
+                   list(background = color)
+                 }),
+      so = colDef(name = "K", align = "center",
+                  style = function(value) {
+                    normalized <- (value - min(pitchers_react$so)) / (max(pitchers_react$so) - min(pitchers_react$so))
+                    color <- coloring(normalized)
+                    list(background = color)
+                  }),
+      sv = colDef(name = "SV", align = "center",
+                  style = function(value) {
+                    normalized <- (value - min(pitchers_react$sv)) / (max(pitchers_react$sv) - min(pitchers_react$sv))
+                    color <- coloring(normalized)
+                    list(background = color)
+                  }),
+      era = colDef(name = "ERA", align = "center", format = colFormat(digits = 2),
+                   style = function(value) {
+                     normalized <- (value - min(pitchers_react$era)) / (max(pitchers_react$era) - min(pitchers_react$era))
+                     color <- coloring_opp(normalized)
+                     list(background = color)
+                   }),
+      whip = colDef(name = "WHIP", align = "center", format = colFormat(digits = 2),
+                    style = function(value) {
+                      normalized <- (value - min(pitchers_react$whip)) / (max(pitchers_react$whip) - min(pitchers_react$whip))
+                      color <- coloring_opp(normalized)
+                      list(background = color)
+                    }),
+      ip = colDef(name = "IP", align = "center"),
+      k_9 = colDef(name = "K/9", align = "center", format = colFormat(digits = 1)),
+      k_bb = colDef(name = "K-BB", align = "center", format = colFormat(digits = 1))
+    ),
+    defaultColDef = colDef(minWidth = 62, format = colFormat(digits = 0)),
+    defaultPageSize = 20,
+    fullWidth = TRUE,
+    style = list(fontFamily = "Work Sans, sans-serif"),
+    details = function(index){
+      #risk_data <- CO2[CO2$Plant == data$Plant[index], ]
+      risk_data <- pitchers_risk[pitchers_risk$player_name == pitchers_react$player_name[index], ]
+      risk_data_1 <- risk_data |> select(c(system, dollars, ip, w, so, sv, era, whip, k_9, k_bb)) |> rename("scenario" = "system")
+      htmltools::div(style = "padding: 1rem",
+                     reactable(risk_data_1, outlined = TRUE,
+                               columns = list(
+                                 era = colDef(name = "era", format = colFormat(digits = 2)),
+                                 whip = colDef(name = "whip", format = colFormat(digits = 2)),
+                                 k_9 = colDef(name = "K/9", format = colFormat(digits = 1)),
+                                 k_bb = colDef(name = "K-BB", format = colFormat(digits = 1))
+                               ),
+                               defaultColDef = colDef(maxWidth = 80, format = colFormat(digits = 0)))
+      )
+    }
+  )
+  #output2 <- ifelse(output == "df", hitters_fa, ifelse(output == "table", reactable_hitters, "error"))
+  #return(output2)
+  reactable_pitchers
+}
+
+
+write.csv(free_agent_all_hitters_rds, file = "ottoneu/all_hitters.csv")
+
+write.csv(free_agent_all_pitchers_rds, file = "ottoneu/all_pitchers.csv")
