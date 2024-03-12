@@ -1256,7 +1256,8 @@ free_agent_hitters_rds <- function(league_id){
     mutate(hr_per600 = (600/ab)*hr,
            r_per600 = (600/ab)*r,
            rbi_per600 = (600/ab)*rbi,
-           sb_per600 = (600/ab)*sb)
+           sb_per600 = (600/ab)*sb) %>%
+    head(500)
   return(hitters_fa)
 }
 
@@ -1621,9 +1622,9 @@ free_agent_pitchers_rds <- function(league_id){
            k_9 = so / (ip/9),
            bb_9 = bb / (ip/9),
            k_bb = so/bb) |>
-    select(c(player_name, position, position_rank, dollars, dollars_sd, w, so, sv, era, whip, ip, k_9, k_bb))
+    select(c(player_name, position, position_rank, dollars, dollars_sd, w, so, sv, era, whip, ip, k_9, k_bb)) %>%
+    head(500)
   return(pitchers_fa)
-  
 }
 
 free_agent_pitchers_reactable <- function(league_id, df) {
