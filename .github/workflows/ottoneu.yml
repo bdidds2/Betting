@@ -41,13 +41,15 @@ jobs:
         uses: actions/checkout@v3
         
       - name: Import data four  
-        run: Rscript ottoneu_functions.R
+        run: Rscript ottoneu_data.R
 
       - name: Commit results
         run: |
           git pull origin
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
+          git add ottoneu/hitters_df.csv
+          git add ottoneu/pitchers_df.csv
           git add ottoneu/bum_bum_hitters.csv
           git add ottoneu/bum_bum_pitchers.csv
           git add ottoneu/dani_rojas_hitters.csv
