@@ -2155,7 +2155,7 @@ write.csv(dani_rojas_pitchers, file = "ottoneu/dani_rojas_pitchers.csv")
 
 bum_bum_hitters <- free_agent_hitters_rds(1023)
 #write_rds(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.rds")
-write.csv(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.csv")
+#rite.csv(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.csv")
 
 bum_bum_pitchers <- free_agent_hitters_rds(1023)
 #write_rds(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.rds")
@@ -2167,3 +2167,104 @@ write.csv(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.csv")
 write.csv(free_agent_all_hitters_rds, file = "ottoneu/all_hitters.csv")
 
 write.csv(free_agent_all_pitchers_rds, file = "ottoneu/all_pitchers.csv")
+
+####### projections
+
+hitters_df2 <- data.frame(system = character(),
+                         player_name = character(),
+                         playerid = character(),
+                         ab = numeric(),
+                         h = numeric(),
+                         hr = numeric(),
+                         r = numeric(),
+                         rbi = numeric(),
+                         sb = numeric(),
+                         bb = numeric())
+
+
+for (i in projection_systems) {
+  hitter_url <- paste0("https://www.fangraphs.com/api/projections?type=", i,"&stats=bat&pos=all&team=0&players=0&lg=all")
+  hitters_list <- read_json(hitter_url)
+  df <- map_dfr(hitters_list, ~as.data.frame(t(unlist(.)))) |> 
+    clean_names() |>
+    select(c(player_name, playerid, minpos, team, ab, h, hr, r, rbi, sb, bb)) |>
+    mutate_at(c('ab', 'h', 'hr', 'r', 'rbi', 'sb', 'bb'), as.numeric) |>
+    mutate(system = i)
+  hitters_df2 <- bind_rows(hitters_df2, df)
+}
+
+hitters_points <- hitters_df2 %>%
+  group_by(player_name) %>%
+  summarize(h = mean(h, na.rm = TRUE),
+            hr = mean(hr, na.rm = TRUE),
+            rbi = mean(rbi, na.rm = TRUE),
+            r = mean(r, na.rm = TRUE),
+            sb = mean(sb, na.rm = TRUE),
+            bb = mean(bb, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(points = 
+           1 * h +
+           3 * hr +
+           1 * rbi +
+           1 * r +
+           3 * sb +
+           1 * bb
+           ) %>%
+  arrange(desc(points))
+
+#write.csv(hitters_points,
+#          file = "H:/My Drive/R_playground/fantrax_hitters.csv")
+
+##
+
+selected_cols <- c("player_name", "ip", "w", "er", "h", "bb", "sv", "so", "qs")
+numeric_cols <- c("ip", "w", "er", "h", "bb", "sv", "so", "qs")
+
+pitchers_df2 <- data.frame()  # Initialize empty data frame
+
+
+for (i in projection_systems1) {
+  pitcher_url <- paste0("https://www.fangraphs.com/api/projections?type=", i, "&stats=pit&pos=all&team=0&players=0&lg=all")
+  pitchers_list <- jsonlite::read_json(pitcher_url)
+  df <- purrr::map_dfr(pitchers_list, ~as.data.frame(t(unlist(.)))) %>%
+    clean_names() %>%
+    select(any_of(selected_cols)) %>%
+    mutate(system = i) #%>%
+    #mutate(across(where(~ !is.character(.) || . == "player_name"), as.character)) %>%
+    #mutate(qs = ifelse(ncol(.) == 10, as.numeric(qs), 0))
+  
+  # Convert all columns to numeric except 'system' and 'player_name'
+  num_cols <- setdiff(names(df), c("system", "player_name"))
+  df[, num_cols] <- lapply(df[, num_cols], as.numeric)
+  
+  pitchers_df2 <- dplyr::bind_rows(pitchers_df2, df)
+}
+
+
+
+
+pitcher_points <- pitchers_df2 %>%
+  mutate(qs = ifelse(system == "zips", NA, qs),
+         h_bb = h + bb) %>%
+  group_by(player_name) %>%
+  summarize(ip = mean(ip, na.rm = TRUE),
+    er = mean(er, na.rm = TRUE),
+            qs = mean(qs, na.rm = TRUE),
+            sv = mean(sv, na.rm = TRUE),
+            h_bb = mean(h_bb, na.rm = TRUE),
+            so = mean(so, na.rm = TRUE),
+            w = mean(w, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(points = 
+           -1.5 * er +
+           1.5 * ip +
+           3 * qs +
+           6 * sv +
+           1.5 * so +
+           3 * w +
+           -.5 * h_bb
+  ) %>%
+  arrange(desc(points))
+  
+#write.csv(pitcher_points,
+#          file = "H:/My Drive/R_playground/fantrax_pitchers.csv")
