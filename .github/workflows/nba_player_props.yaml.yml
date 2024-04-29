@@ -3,12 +3,8 @@ on:
     branches: main
 
   schedule:
-    - cron: '0 08 * * *'
-    - cron: '0 10 * * *'
-    - cron: '0 12 * * *'
-    - cron: '0 14 * * *'
+    - cron: '0 13 * * *'
     - cron: '0 16 * * *'
-    - cron: '0 18 * * *'
 
 jobs:
   import-data:

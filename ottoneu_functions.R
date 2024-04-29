@@ -168,6 +168,73 @@ for (i in projection_systems) {
 
 
 
+# get player info ---------------------------------------------------------
+
+hitters_each_system <- left_join(hitters_df, hitter_values |> select(c(playerid, system, dollars)), 
+                     by = c("playerid"="playerid", "system" = "system")) |>
+  left_join(players |> select(fg_major_league_id, avg_salary, last_10, roster, position_s), 
+            by = c("playerid" = "fg_major_league_id")) |>
+  rename("position" = "position_s") |>
+  select(-minpos) |>
+  mutate(hr_per600 = (600/ab)*hr,
+         r_per600 = (600/ab)*r,
+         rbi_per600 = (600/ab)*rbi,
+         sb_per600 = (600/ab)*sb,
+         player_name = replace_accents(player_name))
+
+hitters_agg <- hitters_each_system %>%
+  group_by(player_name, playerid, team, position) %>%
+  summarize(dollars_mean = mean(dollars),
+            dollars_max = max(dollars),
+            dollars_min = min(dollars),
+            dollars_sd = sd(dollars),
+            ab_mean = mean(ab),
+            h_mean = mean(h),
+            hr_mean = mean(hr),
+            r_mean = mean(r),
+            rbi_mean = mean(rbi),
+            sb_mean = mean(sb),
+            avg_mean = h_mean / ab_mean,
+            hr_per_600_mean = mean(hr_per600),
+            r_per_600_mean = mean(r_per600),
+            rbi_per_600_mean = mean(rbi_per600),
+            sb_per_600_mean = mean(sb_per600)) %>%
+  ungroup() %>%
+  arrange(desc(dollars_mean)) %>%
+  head(400)
+
+pitchers_each_system <- left_join(pitchers_df, pitcher_values |> select(c(playerid, system, dollars)), 
+                      by = c("playerid"="playerid", "system" = "system")) |>
+  left_join(players |> select(fg_major_league_id, avg_salary, last_10, roster), 
+            by = c("playerid" = "fg_major_league_id")) |>
+  mutate(position = case_when(gs / g > .5 ~ "SP",
+                              TRUE ~ "RP")) |>
+  group_by(playerid) |>
+  mutate(gs_perc = sum(gs) / sum(g)) |>
+  ungroup() |>
+  select(-c(gs_perc)) 
+
+pitchers_agg <- pitchers_each_system %>%
+  group_by(player_name, playerid, team, position) %>%
+  summarize(dollars_mean = mean(dollars),
+            dollars_max = max(dollars),
+            dollars_min = min(dollars),
+            dollars_sd = sd(dollars),
+            ip_mean = mean(ip),
+            w_mean = mean(w),
+            sv_mean = mean(sv),
+            k_mean = mean(so),
+            er_mean = mean(er),
+            bb_mean = mean(bb),
+            h_mean = mean(h),
+            er_mean = er_mean*9/ip_mean,
+            whip_mean = (bb_mean + h_mean) / ip_mean,
+            k_9 = k_mean / ip_mean * 9,
+            k_bb = k_9 - (bb_mean / ip_mean * 9)) %>%
+  ungroup() %>%
+  arrange(desc(dollars_mean)) %>%
+  head(400)
+
 # get rosters -------------------------------------------------------------
 
 

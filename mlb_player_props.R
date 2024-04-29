@@ -13,69 +13,20 @@ library(png)
 library(webshot2)
 library(gsheet)
 library(ggplot2)
-library(hoopR)
+library(mlbplotR)
+library(baseballr)
+library(XML)
 #library(oddsapiR)
 #library(nbastatR)
 
 # team table --------------------------------------------------------------
 
-teams_url <- "https://en.wikipedia.org/wiki/National_Basketball_Association"
-
-team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
-  html_table() %>% .[[1]] %>%
-  select("full_name" = "Team") %>%
- # filter(full_name != "American Football Conference", full_name != "National Football Conference", !grepl("relocated", full_name)) %>%
-  mutate(full_name = gsub("[^a-zA-Z0-9 ]", "", full_name)) %>%
-  separate(full_name, c("location","name"),sep="\\s+(?=\\S*$)") %>%
-  mutate(full_name = paste0(location, " ", name),
-         abbr = case_when(name == "Celtics" ~ "BOS",
-                          name == "Nets" ~ "BRK",
-                          name == "Knicks" ~ "NYK",
-                          name == "Raptors" ~ "TOR",
-                          name == "Bulls" ~ "CHI",
-                          name == "Cavaliers" ~ "CLE",
-                          name == "Pistons" ~ "DET",
-                          name == "Pacers" ~ "IND",
-                          name == "Bucks" ~ "MIL",
-                          name == "Hawks" ~ "ATL",
-                          name == "Hornets" ~ "CHA",
-                          name == "Heat" ~ "MIA",
-                          name == "Magic" ~ "ORL",
-                          name == "Wizards" ~ "WAS",
-                          name == "Nuggets" ~ "DEN",
-                          name == "Timberwolves" ~ "MIN",
-                          name == "Thunder" ~ "OKC",
-                          name == "Blazers" ~ "POR",
-                          name == "Jazz" ~ "UTH",
-                          name == "Warriors" ~ "GSW",
-                          name == "Clippers" ~ "LAC",
-                          name == "Lakers" ~ "LAL",
-                          name == "Suns" ~ "PHX",
-                          name == "Kings" ~ "SAC",
-                          name == "Mavericks" ~ "DAL",
-                          name == "Rockets" ~ "HOU",
-                          name == "Grizzlies" ~ "MEM",
-                          name == "Pelicans" ~ "NOP",
-                          name == "Spurs" ~ "SAS",
-                          name == "76ers" ~ "PHI"))
-
-
+teams <- load_mlb_teams()
 
 # player headshots --------------------------------------------------------
 
-#options(nflreadr.verbose = FALSE)
-#headshots <- load_rosters(2023) %>%
-#  select(full_name, headshot_url, team) %>%
-#  mutate(dup = case_when(team == "CAR" & full_name == "Lamar Jackson" ~ 1, 
-#                         team == "JAX" & full_name == "Josh Allen" ~ 1,
-#                         TRUE ~ 0)) %>%
-#  filter(dup == 0) %>%
-#  select(full_name, headshot_url) %>%
-#  mutate(full_name = case_when(full_name == "A.J. Brown" ~ "AJ Brown",
-#                               full_name == "K.J. Osborn" ~ "KJ Osborn",
-#                               full_name == "Gardner Minshew II" ~ "Gardner Minshew",
-#                               full_name == "Gabriel Davis" ~ "Gabe Davis",
-#                               TRUE ~ full_name))
+
+headshots <- load_headshots()
 
 # api setup ---------------------------------------------------------------
 
@@ -84,7 +35,7 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
 api <- "935bb399373baa6304a140c7a6cee4fc"
 #Sys.setenv(ODDS_API_KEY = api)
 base <- "https://api.the-odds-api.com"
-sport <- "basketball_nba"
+sport <- "baseball_mlb"
 markets <- "h2h"
 endpoint <- paste0("/v4/sports/", sport, "/odds/?apiKey=", api, "&regions=us&markets=", markets, "&bookmakers=draftkings&oddsFormat=american")
 
@@ -93,19 +44,19 @@ endpoint <- paste0("/v4/sports/", sport, "/odds/?apiKey=", api, "&regions=us&mar
 url <- paste0(base, endpoint)
 
 response <- GET(url)
-week_filter_date <- Sys.Date()+1
+week_filter_date <- Sys.Date()
 
 # Check the response status
-content_nba_props <- fromJSON(content(response, "text")) %>%
+content_mlb_props <- fromJSON(content(response, "text")) %>%
   unnest(., cols = c(bookmakers)) %>%
   unnest(., cols = c(markets), names_sep = "_") %>%
   unnest(., cols = c(markets_outcomes), names_sep = "_") %>%
   mutate(commence_time = with_tz(ymd_hms(commence_time, tz = "UTC"), tzone = "America/New_York"))
 
-all_game_df <- as.data.frame(content_nba_props %>% distinct(id))
+all_game_df <- as.data.frame(content_mlb_props %>% distinct(id))
 
 
-prop_markets <- "player_points,player_rebounds,player_assists,player_threes,player_blocks,player_steals,player_blocks_steals,player_turnovers,player_points_rebounds_assists,player_double_double"
+prop_markets <- "batter_hits,batter_total_bases,batter_rbis,batter_runs_scored,batter_walks,batter_strikeouts,batter_stolen_bases,pitcher_strikeouts,batter_home_runs,batter_hits_runs_rbis,pitcher_record_a_win,pitcher_hits_allowed,pitcher_walks,pitcher_earned_runs,pitcher_outs"
 prop_endpoint <- paste0("/v4/sports/", sport,  "/events/", all_game_df$id[1], "/odds?apiKey=", api, "&regions=us&markets=", prop_markets,"&bookmakers=draftkings,fanduel&oddsFormat=american")
 prop_url <- paste0(base, prop_endpoint)
 prop_response <- GET(prop_url)
@@ -160,15 +111,21 @@ book_props <- new_df %>%
   select(commence_time, away_team, home_team, player = bookmakers_markets_outcomes_description, play = bookmakers_markets_key, book = bookmakers_key, outcome = bookmakers_markets_outcomes_name, odds = bookmakers_markets_outcomes_price, point = bookmakers_markets_outcomes_point) %>%
   filter(!is.na(commence_time)) %>%
   mutate(prob = round(american_to_prob(odds), 3),
-         play = case_when(play == "player_assists" ~ "ast",
-                          play == "player_blocks" ~ "blk",
-                          play == "player_blocks_steals" ~ "stock",
-                          play == "player_points" ~ "pts",
-                          play == "player_points_rebounds_assists" ~ "pra",
-                          play == "player_rebounds" ~ "reb",
-                          play == "player_steals" ~ "stl",
-                          play == "player_threes" ~ "threes",
-                          play == "player_turnovers" ~ "to",
+         play = case_when(play == "batter_hits" ~ "hits",
+                          play == "batter_home_runs" ~ "hrs",
+                          play == "batter_walks" ~ "walks",
+                          play == "batter_rbis" ~ "rbis",
+                          play == "batter_hits_runs_rbis" ~ "h_r_rbi",
+                          play == "batter_stolen_bases" ~ "sbs",
+                          play == "batter_strikeouts" ~ "sos",
+                          play == "batter_total_bases" ~ "tbs",
+                          play == "batter_runs_scored" ~ "rs",
+                          play == "pitcher_earned_runs" ~ "ers",
+                          play == "pitcher_hits_allowed" ~ "hits_a",
+                          play == "pitcher_outs" ~ "outs",
+                          play == "pitcher_record_a_win" ~ "win",
+                          play == "pitcher_strikeouts" ~ "ks",
+                          play == "pitcher_walks" ~ "bb",
                           TRUE ~ play),
          player = case_when(player == "Jabari Smith Jr." ~ "Jabari Smith",
                             player == "Jaime Jaquez Jr." ~ "Jaime Jaquez Jr",
@@ -205,12 +162,12 @@ book_props <- new_df %>%
          point = ifelse(play == "to_score", .5, point)) %>%
   #distribution = ifelse(play %in% c("patd", "paint", "rec"), "poisson", ifelse(play == "to_score", "easy", "normal"))) %>%
   rename("site" = "book") %>%
-  left_join(., team_table %>% select(c("full_name", "abbr")), by = c("away_team" = "full_name")) %>%
-  mutate(away_team = abbr) %>%
-  select(-abbr) %>%
-  left_join(., team_table %>% select(c("full_name", "abbr")), by = c("home_team" = "full_name")) %>%
-  mutate(home_team = abbr) %>%
-  select(-abbr) %>%
+  left_join(., teams %>% select(c("team_name", "team_abbr")), by = c("away_team" = "team_name")) %>%
+  mutate(away_team = team_abbr) %>%
+  select(-team_abbr) %>%
+  left_join(., teams %>% select(c("team_name", "team_abbr")), by = c("home_team" = "team_name")) %>%
+  mutate(home_team = team_abbr) %>%
+  select(-team_abbr) %>%
   mutate(game_id = paste0(away_team, " - ", home_team)) %>%
 #  mutate(week = nfl_week_raw) %>%
   select(c(commence_time, game_time, game_id, away_team, home_team, player, play, site, outcome, odds, point, prob)) %>%
@@ -218,27 +175,96 @@ book_props <- new_df %>%
          game_id = gsub("PHX", "PHO", game_id))
 
 
+# ballpark pal ------------------------------------------------------------
+
+# URL of the website you want to authenticate with
+login_url <- "https://www.ballparkpal.com/LogIn.php"
+
+username <- "gdmonn@gmail.com"
+password <- "Phillies!2024"
+
+# Start a session and submit login form
+session <- session(login_url)
+form <- html_form(session)[[1]]
+filled_form <- html_form_set(form, email = username, password = password)
+session_submit(session, filled_form)
+
+bp_url <- "https://www.ballparkpal.com/index.php"
+links <- GET(bp_url) %>% htmlParse() %>% xpathSApply(.,path = "//a",xmlGetAttr,"href")  %>% as.data.frame(.) %>% filter(grepl("GamePk", .))
+games <-  links[grep("GamePk", links)] %>% unnest(cols = c()) %>% setNames(c("game")) %>% as.list() %>% unlist()# %>% as.data.frame() %>% mutate(n = row_number()) %>% setNames(c("game", "n"))
+
+bp_pitchers <- data.frame()
+bp_hitters <- data.frame()
+
+pattern <- "(.{10})\\s*\\|\\s*Ballpark Pal"
+
+i <- games[[15]]
+
+for (i in games) {
+  #n <- games$n
+  game_url <- i
+  session <- session_jump_to(session, game_url)
+    
+  if(session$response$status_code == 500) {
+    next
+  } else {
+    text <- read_html(session) %>% html_text()
+    result <- str_match(text, pattern)[2] %>% trimws()
+    away_team <-str_extract(result, "^[^@]+") %>% trimws()
+    home_team <- str_extract(result, "(?<=@)[^@]+") %>% trimws()
+  
+    pitchers_1 <- bind_rows(read_html(session) %>% html_table() %>% pluck(3) %>% mutate(team = away_team),
+                      read_html(session) %>% html_table() %>% pluck(4) %>% mutate(team = home_team)) %>%
+    clean_names()
+    bp_pitchers <- bind_rows(bp_pitchers, pitchers_1)
+    hitters_1 <- bind_rows(read_html(session) %>% html_table() %>% pluck(5) %>% select(-1) %>% mutate(team = away_team),
+                      read_html(session) %>% html_table() %>% pluck(6) %>% select(-1) %>% rename("Batter" = "Battter") %>% mutate(team = home_team)) %>%
+    clean_names()
+    bp_hitters <- bind_rows(bp_hitters, hitters_1)
+  }
+  }
+
+bp_hitters_final <- bp_hitters %>%
+  mutate(tb = 4 * hr + 3 * x3b + 2 * x2b + x1b,
+         h_r_rbi = h + r + rbi) %>%
+  select(c(team, "player" = "batter", "hits" = "h", "rs" = "r", "sbs" = "sb", "hrs" = "hr", "walks" = "bb", "rbis" = "rbi", tb, h_r_rbi, "sos" = "k")) %>%
+  pivot_longer(cols = c(hits, rs, sbs, hrs, walks, rbis, sos, tb, h_r_rbi), names_to = "play", values_to = "proj") %>%
+  mutate(id = paste0(team, "_", player)) %>%
+  mutate(site = "bp",
+         type = "proj")
+
+bp_pitchers_final <- bp_pitchers %>%
+  mutate(outs = 3 * inn) %>%
+  select(c(team, "player" = "pitcher", "win" = "w", "ers" = "r", "hits_a" = "h", "ks" = "k", "bb" = "bb", outs)) %>%
+  pivot_longer(cols = c(win, ers, hits_a, ks, bb, outs), names_to = "play", values_to = "proj") %>%
+  mutate(id = paste0(team, "_", player)) %>%
+  mutate(site = "bp",
+         type = "proj")
+
+
 # sportsline projections --------------------------------------------------
 
-sportsline_raw <- as.data.frame(html_table(read_html("https://www.sportsline.com/nba/expert-projections/simulation/"))[1])
+sportsline_raw <- as.data.frame(html_table(read_html("https://www.sportsline.com/mlb/expert-projections/simulation/"))[1]) %>%
+  clean_names()
 
 sl <- sportsline_raw %>%
-  clean_names() %>%
-  select(c(player, team, game, min, fga, pts, reb = trb, ast, blk = bk, stl = st, to)) %>%
-  mutate(blk = as.double(blk),
-         blk = ifelse(is.na(blk), 0, blk),
-         stl = as.double(stl),
-         stl = ifelse(is.na(stl), 0, stl),
-         to = as.double(to),
-         to = ifelse(is.na(to), 0, stl),
-         pra = pts + reb + ast,
-         stock = blk + stl,
-         game = gsub("@", " - ", game)) |>
-  rowwise() |>
-  mutate(home = sapply(strsplit(game, "-"), "[", 1),
-         away = sapply(strsplit(game, "-"), "[", 2)) %>%
+ # select(c(player, team, game, min, fga, pts, reb = trb, ast, blk = bk, stl = st, to)) %>%
+  mutate(outs = as.double(inn) * 3,
+         ks = as.double(ifelse(is.na(k), 0, k)),
+         hits_a = as.double(ha),
+         ers = as.double(ifelse(is.na(er), 0, er)),
+         bb = as.double(bbi),
+         rbis = as.double(ifelse(is.na(rbi), 0, rbi)),
+         rs = as.double(r),
+         hits = as.double(h)) |>
+  select(c(player, team, outs, ks, hits_a, ers, bb, rbis, rs, hits)) %>%
+  #rowwise() |>
+  #mutate(home = sapply(strsplit(game, "-"), "[", 1),
+  #       away = sapply(strsplit(game, "-"), "[", 2)) %>%
   mutate(site = "sl",
-         type = "proj")
+         type = "proj") %>%
+  pivot_longer(cols = c(outs, ks, hits_a, ers, bb, rbis, rs, hits), names_to = "play", values_to = "proj") %>%
+  filter(!is.na(proj))
 
 # razzball ---------------------------------------------------------------
 
@@ -294,54 +320,107 @@ razzball_final <- razzball_initial %>%
 # numberfire projections ------------------------------------------------
 
 
-numberfire_raw <- as.data.frame(html_table(read_html("https://www.numberfire.com/nba/daily-fantasy/daily-basketball-projections"))[4])
+numberfire_hitters_raw <- as.data.frame(html_table(read_html("https://www.numberfire.com/mlb/daily-fantasy/daily-baseball-projections/batters"))[4])
 
-names(numberfire_raw) <- as.matrix(numberfire_raw)[1, ]
-numberfire_raw <- numberfire_raw[-1, ]
+names(numberfire_hitters_raw) <- as.matrix(numberfire_hitters_raw)[1, ]
+numberfire_hitters_raw <- numberfire_hitters_raw[-1, ]
 
-numberfire <- numberfire_raw |>
+numberfire_hitters <- numberfire_hitters_raw |>
   clean_names() |>
   mutate(player = gsub("Jr\\.", "", player),
          player = gsub("\n", "", player),
          player = str_trim(player),
-         player = str_replace_all(player, "\\s+", " - "),
-         last_name = str_extract(player, "(?<=-\\s)[^-]+")) |>
+         player = str_replace_all(player, "(?<=\\s)\\s+(?=\\s)", " - "),
+         name = trimws(str_extract(player, "^[^-]*")),
+         name2 = trimws(str_match(player, "-(.*?) - ")[, 2])) |>
   rowwise() |>
-  mutate(first_name = str_split(player, " - ")[[1]][3],
-         player = paste0(first_name, " ", last_name),
-         player = str_trim(player),
-         min = as.double(min),
-         pts = as.double(pts),
-         reb = as.double(reb),
-         ast = as.double(ast),
-         stl = as.double(stl),
-         stl = ifelse(is.na(stl), 0, stl),
-         blk = as.double(blk),
-         blk = ifelse(is.na(blk), 0, blk),
-         to = as.double(to),
-         threes = as.double(x3pm),
-         stock = stl + blk,
-         pra = pts + reb + ast) |>
-  select(-c(last_name, first_name, fp, salary, value, x3pm)) %>%
-  mutate(player = case_when(player == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
-                            player == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
-                            player == "Bennedict Mathurin" ~ "Benedict Mathurin",
-                            player == "Andre Jackson" ~ "Andre Jackson Jr",
-                            player == "A.J. Green" ~ "AJ Green",
-                            player == "Nick Smith" ~ "Nick Smith Jr",
-                             TRUE ~ player)) %>%
-  left_join(., sl %>% select(c(player, team, game, home, away)), by = "player") %>%
-  filter(min > 0) %>%
+  mutate(walks = as.double(bb),
+         hrs = as.double(hr),
+         tb = as.double(x1b) + 2 * as.double(x2b) + 3 * as.double(x3b) + 4 * hrs,
+         rs = as.double(r),
+         rbis = as.double(ifelse(is.na(rbi), 0, rbi)),
+         sos = as.double(k),
+         sbs = as.double(sb)) |>
+  select(-c(player, fp, salary, value, pa, bb, x1b, x2b, x3b, hr, r, rbi, sb, k, avg)) %>%
+  mutate(name2 = case_when(name2 == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
+                            name2 == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
+                            name2 == "Bennedict Mathurin" ~ "Benedict Mathurin",
+                            name2 == "Andre Jackson" ~ "Andre Jackson Jr",
+                            name2 == "A.J. Green" ~ "AJ Green",
+                            name2 == "Nick Smith" ~ "Nick Smith Jr",
+                             TRUE ~ name2)) %>%
+  #left_join(., sl %>% select(c(player, team, game, home, away)), by = "player") %>%
+  #filter(min > 0) %>%
   mutate(site = "nf",
-         type = "proj")
+         type = "proj") %>%
+  ungroup() %>%
+  pivot_longer(cols = c(walks, hrs, tb, rs, rbis, sos, sbs), names_to = "play", values_to = "proj")
+  
+
+
+##
+
+numberfire_pitchers_raw <- as.data.frame(html_table(read_html("https://www.numberfire.com/mlb/daily-fantasy/daily-baseball-projections/pitchers"))[4])
+
+names(numberfire_pitchers_raw) <- as.matrix(numberfire_pitchers_raw)[1, ]
+numberfire_pitchers_raw <- numberfire_pitchers_raw[-1, ]
+
+numberfire_pitchers <- numberfire_pitchers_raw |>
+  clean_names() |>
+  mutate(player = gsub("Jr\\.", "", player),
+         player = gsub("\n", "", player),
+         player = str_trim(player),
+         player = str_replace_all(player, "(?<=\\s)\\s+(?=\\s)", " - "),
+         name = trimws(str_extract(player, "^[^-]*")),
+         name2 = trimws(str_match(player, "-(.*?) - ")[, 2])) |>
+  rowwise() |>
+  mutate(ers = as.double(er),
+         hits_a = as.double(h),
+         outs = as.double(ip)*3,
+         win = as.double(substr(w_l, 1, 4)),
+         ks = as.double(k),
+         bb = as.double(bb)) |>
+  select(c(name, name2, ers, hits_a, outs, win, ks, bb)) %>%
+  mutate(name2 = case_when(name2 == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
+                           name2 == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
+                           name2 == "Bennedict Mathurin" ~ "Benedict Mathurin",
+                           name2 == "Andre Jackson" ~ "Andre Jackson Jr",
+                           name2 == "A.J. Green" ~ "AJ Green",
+                           name2 == "Nick Smith" ~ "Nick Smith Jr",
+                           TRUE ~ name2)) %>%
+  #left_join(., sl %>% select(c(player, team, game, home, away)), by = "player") %>%
+  #filter(min > 0) %>%
+  mutate(site = "nf",
+         type = "proj") %>%
+  ungroup() %>%
+  pivot_longer(cols = c(ers, hits_a, outs, win, ks, bb), names_to = "play", values_to = "proj")
+
+nf <- bind_rows(numberfire_hitters, numberfire_pitchers)
 
 
 # projections -------------------------------------------------------------
 
-projections <- bind_rows(sl, numberfire, razzball_final) %>%
-  select(-c(home, away)) %>%
-  pivot_longer(cols = c("pts", "reb", "ast", "blk", "stl", "to", "pra", "stock", "threes"),
-               values_to = "number", names_to = "play")
+bp2 <- bind_rows(bp_hitters_final, bp_pitchers_final)
+
+sl2 <- sl %>%
+  left_join(nf %>% select(c(name, name2)), by = c("player" = "name2"), relationship = "many-to-many") %>%
+  mutate(player = name) %>%
+  select(-name) %>%
+  filter(!is.na(player)) %>%
+  mutate(id = paste0(team, "_", player))
+
+nf2 <- nf %>%
+  rename("player" = "name") %>%
+  left_join(., bp2 %>% select(c(player, team)) %>% distinct(), by = "player") %>%
+  mutate(id = paste0(team, "_", player))
+
+
+
+projections <- bind_rows(sl2, bp2, nf2) %>%
+  filter(!is.na(team)) %>%
+  group_by(player, id, team, play) %>%
+  summarize(mean = mean(proj)) %>%
+  ungroup()
 
 
 # nba stats ---------------------------------------------------------------
@@ -378,26 +457,23 @@ stats_player <- function(player_name, input_play, return_type) {
   
 # props and projections ---------------------------------------------------
 
-props_proj <- left_join(projections, 
-                        book_props %>% rename("game" = "game_id"), 
-                        by = c("player", "game", "play"), 
-                        relationship = "many-to-many") %>%
-  mutate(prediction_diff = abs(number - point)) %>%
-  mutate(filter_difference = case_when(play == "pts" & prediction_diff > 4.9 ~ 1,
-                              play == "rbs" & prediction_diff > 1.2 ~ 1,
-                              play == "ast" & prediction_diff > 1.2 ~ 1,
-                              play == "stl" & prediction_diff > .8 ~ 1,
-                              play == "blk" & prediction_diff > .8 ~ 1,
-                              play == "pra" & prediction_diff > 5.9 ~ 1,
-                              play == "stock" & prediction_diff > .8 ~ 1,
-                              TRUE ~ 0)) %>%
-  rename("site" = "site.x", "book" = "site.y") %>%
-  filter(!is.na(book), !is.na(play)) %>%
-  pivot_wider(names_from = "book", values_from = c("point", "prob", "prediction_diff", "odds")) %>%
-  mutate(site = factor(site, labels = c("Razzball", "numberfire", "SportsLine"), levels = c("rz", "nf", "sl")),
-         play = factor(play, labels = c("Points", "Rebounds", "Assists", "PRA", "Steals", "Blocks", "Stocks", "Threes", "Turnovers"),
-                       levels = c("pts", "reb", "ast", "pra", "stl", "blk", "stock", "threes", "to")))
+book_props2 <- book_props %>%
+  left_join(., nf2 %>% select(c(name2, team, id)) %>% distinct(), by = c("player" = "name2", "away_team" = "team")) %>%
+  left_join(., nf2 %>% select(c(name2, team, id)) %>% distinct(), by = c("player" = "name2", "home_team" = "team")) %>%
+  mutate(id = ifelse(!is.na(id.x), id.x, id.y)) %>%
+  select(-c(id.x, id.y)) %>%
+  filter(!is.na(id))
 
+props_proj <- left_join(projections, 
+                        book_props2 %>% select(-player), 
+                        by = c("id", "play")) %>%
+  mutate(prediction_diff = abs(mean - point)) %>%
+  mutate(filter_difference = case_when(mean < 3 & prediction_diff/point > .2 & prob > .3 & prob < .7 ~ 1,
+                                       prediction_diff > 1.5 & prob > .3 & prob < .7 ~ 1,
+                                       TRUE ~ 0)) %>%
+  filter(!is.na(site), !is.na(play)) %>%
+  pivot_wider(names_from = "site", values_from = c("prob", "prediction_diff", "odds"), values_fn = function(x) x[[1]])
+  
 props_proj_grouped <- props_proj %>%
   group_by(commence_time, game_time, game, player, play, outcome) %>%
   summarize(projected_min = mean(min, na.rm = TRUE),
