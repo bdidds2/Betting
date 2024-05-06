@@ -201,8 +201,6 @@ bp_hitters <- data.frame()
 
 pattern <- "(.{10})\\s*\\|\\s*Ballpark Pal"
 
-i <- games[[15]]
-
 for (i in games) {
   #n <- games$n
   game_url <- i
