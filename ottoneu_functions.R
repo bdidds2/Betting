@@ -184,24 +184,25 @@ hitters_each_system <- left_join(hitters_df, hitter_values |> select(c(playerid,
 
 hitters_agg <- hitters_each_system %>%
   group_by(player_name, playerid, team, position) %>%
-  summarize(dollars_mean = mean(dollars),
-            dollars_max = max(dollars),
-            dollars_min = min(dollars),
-            dollars_sd = sd(dollars),
-            ab_mean = mean(ab),
+  summarize(dollars_mean = round(mean(dollars), 0),
+            dollars_max = round(max(dollars), 0),
+            dollars_min = round(min(dollars), 0),
+            dollars_sd = round(sd(dollars), 1),
+            ab_mean = round(mean(ab), 0),
             h_mean = mean(h),
-            hr_mean = mean(hr),
-            r_mean = mean(r),
-            rbi_mean = mean(rbi),
-            sb_mean = mean(sb),
-            avg_mean = h_mean / ab_mean,
-            hr_per_600_mean = mean(hr_per600),
-            r_per_600_mean = mean(r_per600),
-            rbi_per_600_mean = mean(rbi_per600),
-            sb_per_600_mean = mean(sb_per600)) %>%
+            hr_mean = round(mean(hr), 0),
+            r_mean = round(mean(r), 0),
+            rbi_mean = round(mean(rbi), 0),
+            sb_mean = round(mean(sb), 0),
+            avg_mean = round(h_mean / ab_mean, 3),
+            hr_per_600_mean = round(mean(hr_per600), 1),
+            r_per_600_mean = round(mean(r_per600), 1),
+            rbi_per_600_mean = round(mean(rbi_per600), 1),
+            sb_per_600_mean = round(mean(sb_per600), 1)) %>%
   ungroup() %>%
   arrange(desc(dollars_mean)) %>%
-  head(400)
+  head(400) %>%
+  select(-c(h_mean))
 
 pitchers_each_system <- left_join(pitchers_df, pitcher_values |> select(c(playerid, system, dollars)), 
                       by = c("playerid"="playerid", "system" = "system")) |>
@@ -216,24 +217,25 @@ pitchers_each_system <- left_join(pitchers_df, pitcher_values |> select(c(player
 
 pitchers_agg <- pitchers_each_system %>%
   group_by(player_name, playerid, team, position) %>%
-  summarize(dollars_mean = mean(dollars),
-            dollars_max = max(dollars),
-            dollars_min = min(dollars),
-            dollars_sd = sd(dollars),
-            ip_mean = mean(ip),
-            w_mean = mean(w),
-            sv_mean = mean(sv),
-            k_mean = mean(so),
+  summarize(dollars_mean = round(mean(dollars), 0),
+            dollars_max = round(max(dollars), 0),
+            dollars_min = round(min(dollars), 0),
+            dollars_sd = round(sd(dollars), 1),
+            ip_mean = round(mean(ip), 0),
+            w_mean = round(mean(w), 0),
+            sv_mean = round(mean(sv), 0),
+            k_mean = round(mean(so), 0),
             er_mean = mean(er),
             bb_mean = mean(bb),
             h_mean = mean(h),
-            er_mean = er_mean*9/ip_mean,
-            whip_mean = (bb_mean + h_mean) / ip_mean,
-            k_9 = k_mean / ip_mean * 9,
-            k_bb = k_9 - (bb_mean / ip_mean * 9)) %>%
+            era_mean = round(er_mean*9/ip_mean, 2),
+            whip_mean = round((bb_mean + h_mean) / ip_mean, 2),
+            k_9 = round(k_mean / ip_mean * 9, 1),
+            k_bb = round(k_9 - (bb_mean / ip_mean * 9), 1)) %>%
   ungroup() %>%
   arrange(desc(dollars_mean)) %>%
-  head(400)
+  head(400) %>%
+  select(-c(bb_mean, h_mean))
 
 # get rosters -------------------------------------------------------------
 
@@ -2220,13 +2222,14 @@ free_agent_pitchers_all_reactable <- function(df) {
 
 # bum bum ---------------------------------------------------------
 
-#bum_bum_hitters <- free_agent_hitters_rds(1023)
+bum_bum_hitters <- free_agent_hitters_rds(1023)
 #write_rds(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.rds")
-#rite.csv(bum_bum_hitters, file = "ottoneu/bum_bum_hitters.csv")
+write.csv(bum_bum_hitters, file = "C:/Users/Bobby (Villanova)/OneDrive - Villanova University/Desktop/bum_bum_hitters.csv")
 
-#bum_bum_pitchers <- free_agent_hitters_rds(1023)
+bum_bum_pitchers <- free_agent_pitchers_rds(1023)
 #write_rds(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.rds")
 #write.csv(bum_bum_pitchers, file = "ottoneu/bum_bum_pitchers.csv")
+write.csv(bum_bum_pitchers, file = "C:/Users/Bobby (Villanova)/OneDrive - Villanova University/Desktop/bum_bum_pitchers.csv")
 
 
 # all players -------------------------------------------------------------

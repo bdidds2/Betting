@@ -1,7 +1,6 @@
 library(dplyr)
 library(tidyr)
 library(rvest)
-library(nflreadr)
 library(httr)
 library(jsonlite)
 library(lubridate)
@@ -11,17 +10,19 @@ library(gt)
 library(gtExtras)
 library(png)
 library(webshot2)
-library(gsheet)
 library(ggplot2)
 library(mlbplotR)
 library(baseballr)
 library(XML)
+library(purrr)
 #library(oddsapiR)
 #library(nbastatR)
 
 # team table --------------------------------------------------------------
 
-teams <- load_mlb_teams()
+teams <- load_mlb_teams() %>%
+  mutate(team_abbr = case_when(team_abbr == "AZ" ~ "ARI",
+                               TRUE ~ team_abbr))
 
 # player headshots --------------------------------------------------------
 
@@ -33,6 +34,7 @@ headshots <- load_headshots()
 #Sys.setenv(ODDS_API_KEY = "XXXX-YOUR-API-KEY-HERE-XXXXX")
 
 api <- "935bb399373baa6304a140c7a6cee4fc"
+#api <- "d72d888a7e2831439aa64a8ac1525f71"
 #Sys.setenv(ODDS_API_KEY = api)
 base <- "https://api.the-odds-api.com"
 sport <- "baseball_mlb"
@@ -172,7 +174,8 @@ book_props <- new_df %>%
 #  mutate(week = nfl_week_raw) %>%
   select(c(commence_time, game_time, game_id, away_team, home_team, player, play, site, outcome, odds, point, prob)) %>%
   mutate(game_id = gsub("UTH", "UTA", game_id),
-         game_id = gsub("PHX", "PHO", game_id))
+         game_id = gsub("PHX", "PHO", game_id)) %>%
+  mutate(player = str_replace(player, "(?<=^.).+?\\s", ". "))
 
 
 # ballpark pal ------------------------------------------------------------
@@ -218,7 +221,7 @@ for (i in games) {
     clean_names()
     bp_pitchers <- bind_rows(bp_pitchers, pitchers_1)
     hitters_1 <- bind_rows(read_html(session) %>% html_table() %>% pluck(5) %>% select(-1) %>% mutate(team = away_team),
-                      read_html(session) %>% html_table() %>% pluck(6) %>% select(-1) %>% rename("Batter" = "Battter") %>% mutate(team = home_team)) %>%
+                      read_html(session) %>% html_table() %>% pluck(6) %>% select(-1) %>% rename("Batter" = "Batter") %>% mutate(team = home_team)) %>%
     clean_names()
     bp_hitters <- bind_rows(bp_hitters, hitters_1)
   }
@@ -268,53 +271,26 @@ sl <- sportsline_raw %>%
 
 # razzball ---------------------------------------------------------------
 
-razzbal_url <- "https://basketball.razzball.com/lineups"
-razzball_table_raw <- as.data.frame(html_table(read_html(razzbal_url))[2])
+# URL of the website you want to authenticate with
+#login_url <- "https://razzball.com/wp-login.php"
 
-names(razzball_table_raw) <- as.matrix(razzball_table_raw)[4, ]
-razzball_table <- razzball_table_raw[-1:-4, ]
-razzball <- bind_rows(razzball_table %>% select(c(1:12)),
-                      razzball_table %>% select(c(13:24))) %>%
-  clean_names() %>%
-  mutate_at(vars(-one_of(c("pos", "inj", "name"))), as.numeric) %>%
-  rename("player" = "name") %>%
-  select(-c(pos, inj, dpv, fpt)) %>%
-  filter(!is.na(min)) 
+#username <- "bobbydoll11"
+#password <- "Phillies2024"
 
-razzball_initial <- data.frame(player = "",
-                          min = 0,
-                          pts = 0,
-                          reb = 0,
-                          ast = 0,
-                          stl = 0,
-                          blk = 0,
-                          to = 0)
+#ua <- "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
-for(i in 1:length(html_table(read_html(razzbal_url)))){
-  razzball_table_raw <- as.data.frame(html_table(read_html(razzbal_url))[i])
-  names(razzball_table_raw) <- as.matrix(razzball_table_raw)[4, ]
-  razzball_table <- razzball_table_raw[-1:-4, ]
-  razzball <- bind_rows(razzball_table %>% select(c(1:12)),
-                        razzball_table %>% select(c(13:24))) %>%
-    clean_names() %>%
-    mutate_at(vars(-one_of(c("pos", "inj", "name"))), as.numeric) %>%
-    rename("player" = "name") %>%
-    select(-c(pos, inj, dpv, fpt)) %>%
-    filter(!is.na(min))
-  razzball_initial <- bind_rows(razzball_initial, razzball)
-}
+# Start a session and submit login form
+#session <- session(login_url, user_agent(ua))
+#session <- session(login_url)
+#form <- html_form(session)[[1]]
+#filled_form <- html_form_set(form, log = username, pwd = password)
+#html_form_submit(filled_form)
+#session_submit(session, filled_form)
 
-razzball_final <- razzball_initial %>%
-  mutate(pra = pts + reb + ast,
-         stock = stl + blk,
-         player = case_when(player == "Nick Smith Jr." ~ "Nick Smith Jr",
-                            player == "Jabari Smith Jr." ~ "Jabari Smith",
-                            player == "Jaime Jaquez Jr." ~ "Jaime Jaquez Jr",
-                            player == "Bennedict Mathurin" ~ "Benedict Mathurin",
-                            TRUE ~ player)) %>%
-  left_join(., sl %>% select(c(player, team, game, home, away)), by = "player") %>%
-  mutate(site = "rz",
-         type = "proj")
+#razzball_url <- "https://razzball.com/hittertron-today/"
+#links <- GET(razzball_url) %>% htmlParse() %>% xpathSApply(.,path = "//a",xmlGetAttr,"href")  %>% as.data.frame(.) %>% filter(grepl("GamePk", .))
+#games <-  links[grep("GamePk", links)] %>% unnest(cols = c()) %>% setNames(c("game")) %>% as.list() %>% unlist()# %>% as.data.frame() %>% mutate(n = row_number()) %>% setNames(c("game", "n"))
+
 
 
 # numberfire projections ------------------------------------------------
@@ -400,17 +376,36 @@ nf <- bind_rows(numberfire_hitters, numberfire_pitchers)
 
 # projections -------------------------------------------------------------
 
-bp2 <- bind_rows(bp_hitters_final, bp_pitchers_final)
+bp_distinct <- bind_rows(bp_hitters_final, bp_pitchers_final) %>%
+  distinct(player, team) %>%
+  count(player) %>%
+  filter(n > 1) %>%
+  as.data.frame()
+remove <- bp_distinct$player
+
+bp2 <- bind_rows(bp_hitters_final, bp_pitchers_final) %>%
+  filter(!(player %in% remove))
 
 sl2 <- sl %>%
-  left_join(nf %>% select(c(name, name2)), by = c("player" = "name2"), relationship = "many-to-many") %>%
+  mutate(name = str_replace(player, "(?<=^.).+?\\s", ". ")) %>%
+  left_join(headshots %>% 
+              filter(!is.na(player_name)) %>%
+              select(c(player_name, espn_headshot)) %>% 
+              group_by(player_name) %>% 
+              mutate(count = n()) %>% 
+              ungroup() %>% 
+              arrange(desc(count)) %>%
+              filter(count == 1), 
+            by = c("player" = "player_name")) %>%
   mutate(player = name) %>%
-  select(-name) %>%
+  select(-c(count, name)) %>%
   filter(!is.na(player)) %>%
   mutate(id = paste0(team, "_", player))
 
 nf2 <- nf %>%
   rename("player" = "name") %>%
+  mutate(player = case_when(player == "F. Tatis" ~ "F. Tatis Jr.",
+                            TRUE ~ player)) %>%
   left_join(., bp2 %>% select(c(player, team)) %>% distinct(), by = "player") %>%
   mutate(id = paste0(team, "_", player))
 
@@ -422,44 +417,11 @@ projections <- bind_rows(sl2, bp2, nf2) %>%
   summarize(mean = mean(proj)) %>%
   ungroup()
 
-
-# nba stats ---------------------------------------------------------------
-
-stats <- load_nba_player_box()
-
-stats_player <- function(player_name, input_play, return_type) {
-  df1 <- stats %>%
-  filter(ejected == FALSE) %>%
-  filter(athlete_display_name == player_name) %>%
-  select(game_date, athlete_display_name, athlete_headshot_href, minutes, points, rebounds, assists, steals, blocks, three_point_field_goals_made) %>%
-  head(10) %>%
-  group_by(athlete_display_name, athlete_headshot_href) %>%
-  summarize(across(where(is.numeric), ~ mean(., na.rm = TRUE))) %>%
-  rename("player" = "athlete_display_name",
-         "min" = "minutes",
-         "headshot" = "athlete_headshot_href",
-         "pts" = "points",
-         "reb" = "rebounds",
-         "ast" = "assists",
-         "stl" = "steals",
-         "blk" = "blocks",
-         "threes" = "three_point_field_goals_made") %>%
-  mutate(stock = stl + blk,
-         pra = pts + reb + blk) %>%
-  ungroup() %>%
-  pivot_longer(cols = c(pts, reb, ast, stl, pra, blk, threes, stock), names_to = "play", values_to = "mean") %>%
-  mutate(play = factor(play, labels = c("Points", "Rebounds", "Assists", "PRA", "Steals", "Blocks", "Stocks", "Threes", "Turnovers"),
-                  levels = c("pts", "reb", "ast", "pra", "stl", "blk", "stock", "threes", "to")))
-  df2 <- df1 %>% filter(play == input_play) %>% pull(mean)
-  df3 <- df1 %>% filter(play == input_play) %>% pull(min)
-  return(ifelse(length(df2) > 0 & return_type == "mean", df2, ifelse(length(df3) > 0 & return_type == "min", df3, 0)))
-}
-  
 # props and projections ---------------------------------------------------
 
 book_props2 <- book_props %>%
-  left_join(., nf2 %>% select(c(name2, team, id)) %>% distinct(), by = c("player" = "name2", "away_team" = "team")) %>%
-  left_join(., nf2 %>% select(c(name2, team, id)) %>% distinct(), by = c("player" = "name2", "home_team" = "team")) %>%
+  left_join(., projections %>% select(c(player, team, id)) %>% distinct(), by = c("player" = "player", "away_team" = "team")) %>%
+  left_join(., projections %>% select(c(player, team, id)) %>% distinct(), by = c("player" = "player", "home_team" = "team")) %>%
   mutate(id = ifelse(!is.na(id.x), id.x, id.y)) %>%
   select(-c(id.x, id.y)) %>%
   filter(!is.na(id))
@@ -475,93 +437,93 @@ props_proj <- left_join(projections,
   pivot_wider(names_from = "site", values_from = c("prob", "prediction_diff", "odds"), values_fn = function(x) x[[1]])
   
 props_proj_grouped <- props_proj %>%
-  group_by(commence_time, game_time, game, player, play, outcome) %>%
-  summarize(projected_min = mean(min, na.rm = TRUE),
-            projected_number = round(mean(number, na.rm = TRUE), 1),
-            avg_point_dk = mean(point_dk, na.rm = TRUE),
-            avg_point_fd = mean(point_fd, na.rm = TRUE),
-            avg_odds_dk = mean(odds_dk, na.rm = TRUE),
-            avg_odds_fd = mean(odds_fd, na.rm = TRUE),
-            avg_pred_diff_dk = round(mean(prediction_diff_dk, na.rm = TRUE), 1),
-            avg_pred_diff_fd = round(mean(prediction_diff_fd, na.rm = TRUE), 1),
-            avg_diff = mean(filter_difference, na.rm = TRUE)) %>%
-  ungroup() %>%
-  filter(avg_diff > .5) %>%
-  mutate(side = ifelse(projected_number < avg_point_dk, "under", "over")) %>%
+  mutate(side = ifelse(mean < point, "under", "over"),
+         diff = (mean - point) / point,
+         diff_abs = abs(diff),
+         diff_num = mean - point,
+         diff_num_abs = abs(diff_num),
+         mean_prob = (ifelse(is.na(prob_dk), prob_fd, prob_dk) + ifelse(is.na(prob_fd), prob_dk, prob_fd)) / 2,
+         diff2 = diff_abs - mean_prob,
+         filter = case_when(mean_prob > .35 & mean_prob < .6 & point == .5 & diff_num_abs > .8 ~ 1,
+                            mean_prob > .35 & mean_prob < .6 & point == 1.5 & diff_num_abs > 1.1 ~ 1,
+                            mean_prob > .35 & mean_prob < .6 & point == 2.5 & diff_num_abs > 1.3 ~ 1,
+                            mean_prob > .35 & mean_prob < .6 & point != .5 & diff_num_abs > .9 ~ 1,
+                            mean_prob < .35 & mean_prob > .6 & point != .5 & diff2 > .7 ~ 1,
+                            mean_prob < .35 & mean_prob > .6 & point == .5 & diff2 > 2 ~ 1, 
+                            TRUE ~ 0)) %>%
   filter(outcome == side) %>%
-  rowwise() %>%
-  mutate(last10_mean = stats_player(player, play, "mean"),
-         last10_min = stats_player(player, play, "min")) %>%
-  left_join(., stats %>% distinct(athlete_display_name, athlete_headshot_href), by = c("player" = "athlete_display_name"), relationship = 'many-to-many') %>%
-  mutate(projected_compared_to_mean = projected_number - last10_mean,
-         projected_min_compared_to_mean = projected_min - last10_min,
-         projected_stat_per_min = projected_number / projected_min,
-         last10_stat_per_min = last10_mean / last10_min,
-         projected_stat_based_on_min = last10_stat_per_min * projected_min,
-         projected_stat_based_on_rate = projected_stat_per_min * last10_min,
-         rate_compared_last10 = projected_stat_per_min - last10_stat_per_min)
+  left_join(., sl2 %>% 
+              distinct(player, espn_headshot) %>% 
+              filter(!is.na(espn_headshot)) %>%
+              group_by(player) %>%
+              mutate(count = n()) %>%
+              ungroup() %>%
+              filter(count == 1) %>%
+              select(-count),
+            by = "player") %>%
+  left_join(., teams %>% select(c(team_abbr, team_logo_espn)), by = c("away_team" = "team_abbr")) %>%
+  rename("away_logo" = "team_logo_espn") %>%
+  left_join(., teams %>% select(c(team_abbr, team_logo_espn)), by = c("home_team" = "team_abbr")) %>%
+  rename("home_logo" = "team_logo_espn") %>%
+  mutate(crude_implied = case_when(outcome == "over" ~ (floor(point) * (1-mean_prob) + ceiling(point) * mean_prob),
+                                   outcome == "under" ~ (floor(point) * (mean_prob) + ceiling(point) * (1-mean_prob)),
+                                   TRUE ~ NA))
 
-nba_props_gt <- props_proj_grouped %>%
-  arrange(commence_time) %>%
-  select(c(game_time, game, athlete_headshot_href, player, play, outcome, projected_number, projected_min_compared_to_mean, rate_compared_last10, projected_stat_based_on_min, projected_stat_based_on_rate, avg_point_dk, avg_odds_dk, avg_pred_diff_dk, avg_point_fd, avg_odds_fd, avg_pred_diff_fd)) %>%
+mlb_props_gt <- props_proj_grouped %>%
+  filter(filter == 1) %>%
+  mutate(play = case_when(play == "h_r_rbi" ~ "H+R+RBI",
+                          play == "hits" ~ "Hits",
+                          play == "sos" ~ "Ks",
+                          play == "ks" ~ "Ks",
+                          play == "hits_a" ~ "Hits Allowed",
+                          play == "outs" ~ "Outs",
+                          play == "ers" ~ "ER Allowed",
+                          TRUE ~ play)) %>%
+  arrange(commence_time, desc(diff_abs)) %>%
+  select(c(game_time, away_logo, game_id, home_logo, espn_headshot, player, outcome, play, mean, point, diff_num, odds_dk, odds_fd)) %>%
   gt() %>%
   sub_missing(missing_text = "") %>%
-  fmt_number(columns = c("avg_pred_diff_dk", "avg_pred_diff_fd", "projected_min_compared_to_mean"),
-             force_sign = TRUE,
-             decimals = 1) %>%
-  fmt_number(columns = "rate_compared_last10",
-             force_sign = TRUE,
-             decimals = 2) %>%
-  fmt_number(columns = c("avg_odds_dk", "avg_odds_fd"),
-             force_sign = TRUE,
-             decimals = 0) %>%
-  fmt_number(columns = c("projected_stat_based_on_min", "projected_stat_based_on_rate", "projected_number"),
+  fmt_number(columns = c("mean"),
              force_sign = FALSE,
              decimals = 1) %>%
-  tab_spanner(columns = c(projected_min_compared_to_mean, rate_compared_last10),
-              label = "Compared to Last 10 Avg") %>%
-  tab_spanner(columns = c(projected_stat_based_on_min, projected_stat_based_on_rate),
-              label = "Projection Using Last 10 and Projected") %>%
-  tab_spanner(columns = c(avg_point_dk, avg_odds_dk, avg_pred_diff_dk),
-              label = "DraftKings") %>%
-  tab_spanner(columns = c(avg_point_fd, avg_odds_fd, avg_pred_diff_fd),
-              label = "FanDuel") %>%
+  fmt_number(columns = c("diff_num"),
+             force_sign = TRUE,
+             decimals = 1) %>%
+  fmt_number(columns = c("odds_dk", "odds_fd"),
+             force_sign = TRUE,
+             decimals = 0) %>%
+  gt_img_rows(away_logo) %>%
+  gt_img_rows(home_logo) %>%
+  gt_img_rows(espn_headshot) %>%
   cols_label(game_time = "Time",
-             athlete_headshot_href = "",
-             game = "Game",
+             away_logo = "",
+             game_id = "Game",
+             home_logo = "",
+             espn_headshot = "",
              player = "Player",
-             projected_number = "Projected",
-             avg_point_dk = "Line",
-             avg_point_fd = "Line",
-             avg_odds_dk = "Odds",
-             avg_odds_fd = "Odds",
-             avg_pred_diff_dk = "Delta",
-             avg_pred_diff_fd = "Delta",
+             mean = "Projected",
+             diff_num = "Delta",
+             point = "Line",
+             odds_dk = "DK",
+             odds_fd = "FD",
              play = "Play",
-             outcome = "Pick",
-             projected_min_compared_to_mean = "Minutes",
-             rate_compared_last10 = "Rate",
-             projected_stat_based_on_min = "Minutes",
-             projected_stat_based_on_rate = "Rate") %>%
+             outcome = "Pick") %>%
   tab_style(style = cell_text(weight = "bold"),
-            locations = cells_body(columns = projected_number)) %>%
-  cols_width(game_time ~ px(40),
-             game ~ px(100)) %>%
-  tab_header(title = paste0("NBA Player Props - ", Sys.Date())) %>%
-  gt_img_rows(athlete_headshot_href) %>%
+            locations = cells_body(columns = c(play, outcome))) %>%
+  tab_header(title = paste0("MLB Player Props - ", Sys.Date())) %>%
   tab_style(style = cell_borders(sides = "left"),
-            locations = cells_body(columns= c("avg_point_dk", "avg_point_fd"))) %>%
+            locations = cells_body(columns= c(point))) %>%
   cols_align(align = "center",
              columns = everything()) %>%
   data_color(
-    columns = c(avg_odds_dk,avg_odds_fd),
+    columns = c(odds_dk, odds_fd),
     fn = function(x) {
       colors <- ifelse(is.na(x), "white",
-        ifelse(x < -150, "red",
+        ifelse(x < -170, "red",
                        ifelse(x >= -110, "green",
                               scales::col_numeric(
                                 palette = c("red", "green"),
-                                domain = c(-170, -110)
+                                domain = c(-200, -110)
                               )(x))))
       return(colors)
     }
@@ -572,8 +534,8 @@ nba_props_gt <- props_proj_grouped %>%
 
 
 #save props values html
-ifelse(class(nba_props_gt) != "try-error",
-       gtsave(nba_props_gt,filename = "NBA_Player_Props.png", expand = 100, vheight = 200, vwidth = 2000),
+ifelse(class(mlb_props_gt) != "try-error",
+       gtsave(mlb_props_gt,filename = "MLB_Player_Props.png", expand = 100, vheight = 200, vwidth = 2000),
        NA)
 
 #save projections
