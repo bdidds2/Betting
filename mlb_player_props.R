@@ -257,15 +257,18 @@ sl <- sportsline_raw %>%
          bb = as.double(bbi),
          rbis = as.double(ifelse(is.na(rbi), 0, rbi)),
          rs = as.double(r),
-         hits = as.double(h)) |>
-  select(c(player, team, outs, ks, hits_a, ers, bb, rbis, rs, hits)) %>%
+         hits = as.double(h),
+         h_r_rbi = hits + rs + rbis) |>
+  select(c(player, team, outs, ks, hits_a, ers, bb, rbis, rs, hits, h_r_rbi)) %>%
   #rowwise() |>
   #mutate(home = sapply(strsplit(game, "-"), "[", 1),
   #       away = sapply(strsplit(game, "-"), "[", 2)) %>%
   mutate(site = "sl",
          type = "proj") %>%
-  pivot_longer(cols = c(outs, ks, hits_a, ers, bb, rbis, rs, hits), names_to = "play", values_to = "proj") %>%
-  filter(!is.na(proj))
+  pivot_longer(cols = c(outs, ks, hits_a, ers, bb, rbis, rs, hits, h_r_rbi), names_to = "play", values_to = "proj") %>%
+  filter(!is.na(proj)) %>%
+  mutate(player = case_when(player == "Abraham Toro-Hernandez" ~ "Abraham Toro",
+                            TRUE ~ player))
 
 # razzball ---------------------------------------------------------------
 
@@ -314,7 +317,9 @@ numberfire_hitters <- numberfire_hitters_raw |>
          rs = as.double(r),
          rbis = as.double(ifelse(is.na(rbi), 0, rbi)),
          sos = as.double(k),
-         sbs = as.double(sb)) |>
+         sbs = as.double(sb),
+         hits = hrs + as.double(x1b) + as.double(x2b) + as.double(x3b),
+         h_r_rbi = hits + hrs + rbis) |>
   select(-c(player, fp, salary, value, pa, bb, x1b, x2b, x3b, hr, r, rbi, sb, k, avg)) %>%
   mutate(name2 = case_when(name2 == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
                             name2 == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
@@ -328,7 +333,8 @@ numberfire_hitters <- numberfire_hitters_raw |>
   mutate(site = "nf",
          type = "proj") %>%
   ungroup() %>%
-  pivot_longer(cols = c(walks, hrs, tb, rs, rbis, sos, sbs), names_to = "play", values_to = "proj")
+  pivot_longer(cols = c(walks, hrs, tb, rs, rbis, sos, sbs, h_r_rbi), 
+               names_to = "play", values_to = "proj")
   
 
 
@@ -445,7 +451,8 @@ props_proj_grouped <- props_proj %>%
          filter = case_when(mean_prob > .35 & mean_prob < .6 & point == .5 & diff_num_abs > .8 ~ 1,
                             mean_prob > .35 & mean_prob < .6 & point == 1.5 & diff_num_abs > 1.1 ~ 1,
                             mean_prob > .35 & mean_prob < .6 & point == 2.5 & diff_num_abs > 1.3 ~ 1,
-                            mean_prob > .35 & mean_prob < .6 & point != .5 & diff_num_abs > .9 ~ 1,
+                            mean_prob > .35 & mean_prob < .6 & point > 2.5 & point < 10 & diff_num_abs > 1.2 ~ 1,
+                            mean_prob > .35 & mean_prob < .6 & point >= 10 & diff_num_abs > 1 ~ 1,
                             mean_prob < .35 & mean_prob > .6 & point != .5 & diff2 > .7 ~ 1,
                             mean_prob < .35 & mean_prob > .6 & point == .5 & diff2 > 2 ~ 1, 
                             TRUE ~ 0)) %>%
