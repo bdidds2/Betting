@@ -46,23 +46,23 @@ epl_h2h_content <- fromJSON(content(response, "text")) %>%
 
 epl_game_df <- epl_h2h_content %>% select(id) %>% distinct() %>% as.data.frame()
 
-game_markets <- "btts,draw_no_bet"
+game_markets <- "btts"
 
 
-game_endpoint <- paste0("/v4/sports/", sport,  "/events/", epl_game_df$id[1], "/odds?apiKey=", api, "&regions=us&markets=", game_markets,"&bookmakers=draftkings,fanduel&oddsFormat=american")
+game_endpoint <- paste0("/v4/sports/", sport,  "/events/", epl_game_df$id[1], "/odds?apiKey=", api, "&regions=us&markets=", game_markets,"&bookmakers=betmgm&oddsFormat=american")
 
 game_url <- paste0(base, game_endpoint)
 
 game_response <- GET(game_url)
 
 # Check the response status
-game_content <- fromJSON(content(game_response, "text")) %>%
+game_content <- fromJSON(content(game_response, "text")) %>% #[-7] %>%
   as.data.frame() %>%
   unnest(., cols = c(bookmakers.markets), names_sep = "_") %>%
   unnest(., cols = c(bookmakers.markets_outcomes), names_sep = "_")
 
 event_url_to_response <- function(input_string){
-  game_endpoint_f <- paste0("/v4/sports/", sport,  "/events/", input_string, "/odds?apiKey=", api, "&regions=us&markets=", game_markets,"&bookmakers=draftkings,fanduel&oddsFormat=american")
+  game_endpoint_f <- paste0("/v4/sports/", sport,  "/events/", input_string, "/odds?apiKey=", api, "&regions=us&markets=", game_markets,"&bookmakers=betmgm&oddsFormat=american")
   game_url_f <- paste0(base, game_endpoint_f)
   game_response_f <- GET(game_url_f)
   game_content_f <- fromJSON(content(game_response_f, "text")) %>%
@@ -94,9 +94,9 @@ american_to_prob <- function(american_odds) {
   return(abs(probability))
 }
 
-odds_api_team_names <- c("Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton and Hove Albion", "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham", "Liverpool", "Luton", "Manchester City", "Manchester United", "Newcastle United", "Nottingham Forest", "Sheffield United", "Tottenham Hotspur", "West Ham United", "Wolverhampton Wanderers")
-xg_team_names <- c("Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton", "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham", "Liverpool", "Luton", "Man City", "Man Utd", "Newcastle", "Nott'm Forest", "Sheffield United", "Tottenham", "West Ham", "Wolves")
-dratings_team_names <- c("Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton and Hove Albion", "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham", "Liverpool", "Luton Town", "Manchester City", "Manchester United", "Newcastle United", "Nottingham Forest", "Sheffield United", "Tottenham", "West Ham United", "Wolverhampton")
+odds_api_team_names <- c("Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton and Hove Albion", "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham", "Ipswich Town", "Leicester City", "Liverpool", "Luton", "Manchester City", "Manchester United", "Newcastle United", "Nottingham Forest", "Sheffield United", "Southampton", "Tottenham Hotspur", "West Ham United", "Wolverhampton Wanderers")
+xg_team_names <- c("Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton", "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham", "Ipswich", "Leicester", "Liverpool", "Luton", "Man City", "Man Utd", "Newcastle", "Nott'm Forest", "Sheffield United", "Southampton", "Tottenham", "West Ham", "Wolves")
+dratings_team_names <- c("Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton and Hove Albion", "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham", "Ipswich Town", "Leicester City", "Liverpool", "Luton Town", "Manchester City", "Manchester United", "Newcastle United", "Nottingham Forest", "Sheffield United", "Southampton", "Tottenham", "West Ham United", "Wolverhampton")
 
 
 team_name_df <- data.frame(api_name = odds_api_team_names,
@@ -135,16 +135,16 @@ epl_dates <- paste0(format(min(epl_odds$commence_time), "%b %d"), " - ", format(
 
 # epl matchday number ---------------------------------------------------------
 
-matchday_url <- "https://www.besoccer.com/competition/scores/premier_league/2024"
+#matchday_url <- "https://www.transfermarkt.us/premier-league/spieltag/wettbewerb/GB1"
 
-page <- read_html(matchday_url)
-xpath <- '//*[@id="anchorRound"]/h1'
+#page <- read_html(matchday_url)
+#xpath <- '/html/body/div[2]/div/div[5]/div/div[2]'
 
 # Extract content using the XPath
-result <- page %>% html_nodes(xpath = xpath) %>% html_text()
+#result <- page %>% html_nodes(xpath = xpath) %>% html_text()
 
-result1 <- trimws(result) %>% gsub("Round", "Matchweek", .)
-
+#result1 <- trimws(result) %>% gsub("Round", "Matchweek", .)
+result1 <- "Matchday x"
 
 # football xg -------------------------------------------------------------
 
@@ -261,12 +261,12 @@ epl_final <- epl_odds %>%
          away_dc_dk_value_xg = away_dc_xg - away_dc_dk,
          home_dc_dk_value_dr = home_dc_dr - home_dc_dk,
          away_dc_dk_value_dr = away_dc_dr - away_dc_dk,
-         away_dnb_dk_value_xg = away_dnb_xg - prob_dk_away_draw_no_bet,
-         away_dnb_dk_value_dr = away_dnb_dr - prob_dk_away_draw_no_bet,
-         home_dnb_dk_value_xg = home_dnb_xg - prob_dk_home_draw_no_bet,
-         home_dnb_dk_value_dr = home_dnb_dr - prob_dk_home_draw_no_bet,
-         btts_yes_dk_value_xg = btts_yes_xg - prob_dk_yes_btts,
-         btts_no_dk_value_xg = btts_no_xg - prob_dk_no_btts)
+        # away_dnb_dk_value_xg = away_dnb_xg - prob_betmgm_away_draw_no_bet,
+        # away_dnb_dk_value_dr = away_dnb_dr - prob_betmgm_away_draw_no_bet,
+        # home_dnb_dk_value_xg = home_dnb_xg - prob_betmgm_home_draw_no_bet,
+        # home_dnb_dk_value_dr = home_dnb_dr - prob_betmgm_home_draw_no_bet,
+         btts_yes_dk_value_xg = btts_yes_xg - prob_betmgm_yes_btts,
+         btts_no_dk_value_xg = btts_no_xg - prob_betmgm_no_btts)
 
 
 epl_crests <- read_csv("https://raw.githubusercontent.com/dm13450/FootballCrests/main/crest.csv", show_col_types = FALSE) %>%

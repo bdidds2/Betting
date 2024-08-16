@@ -378,6 +378,69 @@ numberfire_pitchers <- numberfire_pitchers_raw |>
 nf <- bind_rows(numberfire_hitters, numberfire_pitchers)
 
 
+
+# lineup experts ----------------------------------------------------------
+
+lineupexperts_hitters_raw <- as.data.frame(html_table(read_html("https://www.lineupexperts.com/baseball/projections?flt_pos=Batter&flt_proj_time_period=Today")))
+
+lineupexperts_hitters <- lineupexperts_hitters_raw %>%
+  clean_names() %>%
+  mutate(player1 = str_sub(str_extract(player, "^[^.]+"), end = -2),
+         team = trimws(str_extract(player, "(?<=\\()[^-]*(?=\\-)"))) %>%
+  rowwise() %>%
+  mutate(game_count = str_count(game_details, regex("vs", ignore_case = TRUE)) + str_count(game_details, regex("@", ignore_case = TRUE))) %>%
+  ungroup() %>%
+  filter(game_count == 1) %>%
+  rowwise() %>%
+  mutate(tb = (4 * hr) + (3 * x3b) + (2 * x2b) + (h - x2b - x3b - hr),
+         first_period = str_locate(player, "\\.")[1, 1],
+         id1 = paste0(team, "_", str_sub(player, first_period - 1, str_locate(player, "\n")[1] - 1))) %>%
+  ungroup() %>%
+  rename("hits" = "h",
+         "sbs" = "sb",
+         "walks" = "bb",
+         "rbis" = "rbi",
+         "sos" = "k",
+         "rs" = "r") %>%
+  mutate(h_r_rbi = hits + rs + rbis) %>%
+  select(c("player" = "player1",
+           team,
+           "id" = "id1",
+           hits, hr, rbis, sbs, walks, sos, tb, h_r_rbi)) %>%
+  pivot_longer(cols = c(hits, hr, rbis, sbs, walks, sos, tb, h_r_rbi), names_to = "play", values_to = "proj") %>%
+  mutate(site = "le",
+         type = "proj")
+
+
+
+lineupexperts_pitchers_raw <- as.data.frame(html_table(read_html("https://www.lineupexperts.com/baseball/projections?flt_pos=Pitcher&flt_proj_time_period=Today")))
+
+lineupexperts_pitchers <- lineupexperts_pitchers_raw %>%
+  clean_names() %>%
+  mutate(player1 = str_sub(str_extract(player, "^[^.]+"), end = -2),
+         team = trimws(str_extract(player, "(?<=\\()[^-]*(?=\\-)"))) %>%
+  rowwise() %>%
+  mutate(game_count = str_count(game_details, regex("vs", ignore_case = TRUE)) + str_count(game_details, regex("@", ignore_case = TRUE))) %>%
+  ungroup() %>%
+  filter(game_count == 1) %>%
+  rowwise() %>%
+  mutate(first_period = str_locate(player, "\\.")[1, 1],
+         id1 = paste0(team, "_", str_sub(player, first_period - 1, str_locate(player, "\n")[1] - 1))) %>%
+  ungroup() %>%
+  rename("win" = "w",
+         "ers" = "er",
+         "hits_a" = "h",
+         "ks" = "k") %>%
+  mutate(outs = 3* ip) %>%
+  select(c("player" = "player1",
+           team,
+           "id" = "id1",
+           win, ers, hits_a, ks, bb, outs)) %>%
+  pivot_longer(cols = c(win, ers, hits_a, ks, bb, outs, bb), names_to = "play", values_to = "proj") %>%
+  mutate(site = "le",
+         type = "proj")
+         
+
 # projections -------------------------------------------------------------
 
 bp_distinct <- bind_rows(bp_hitters_final, bp_pitchers_final) %>%
@@ -413,12 +476,16 @@ nf2 <- nf %>%
   left_join(., bp2 %>% select(c(player, team)) %>% distinct(), by = "player") %>%
   mutate(id = paste0(team, "_", player))
 
+le2 <- bind_rows(lineupexperts_hitters, lineupexperts_pitchers) %>%
+  mutate(name = str_replace(player, "(?<=^.).+?\\s", ". ")) %>%
+  rename("player2" = "player",
+         "player" = "name")
 
-
-projections <- bind_rows(sl2, bp2, nf2) %>%
-  filter(!is.na(team)) %>%
+projections <- bind_rows(sl2, bp2, nf2, le2) %>%
+  filter(!is.na(team), player != "") %>%
   group_by(player, id, team, play) %>%
-  summarize(mean = mean(proj)) %>%
+  summarize(mean = mean(proj),
+            count = n_distinct(site)) %>%
   ungroup()
 
 # props and projections ---------------------------------------------------
@@ -485,7 +552,7 @@ mlb_props_gt <- props_proj_grouped %>%
                           play == "ers" ~ "ER Allowed",
                           TRUE ~ play)) %>%
   arrange(commence_time, desc(diff_abs)) %>%
-  select(c(game_time, away_logo, game_id, home_logo, espn_headshot, player, outcome, play, mean, point, diff_num, odds_dk, odds_fd)) %>%
+  select(c(game_time, away_logo, game_id, home_logo, espn_headshot, player, outcome, play, mean, point, diff_num, odds_dk, odds_fd, count)) %>%
   gt() %>%
   sub_missing(missing_text = "") %>%
   fmt_number(columns = c("mean"),
@@ -512,7 +579,8 @@ mlb_props_gt <- props_proj_grouped %>%
              odds_dk = "DK",
              odds_fd = "FD",
              play = "Play",
-             outcome = "Pick") %>%
+             outcome = "Pick",
+             count = "Sites") %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = cells_body(columns = c(play, outcome))) %>%
   tab_header(title = paste0("MLB Player Props - ", Sys.Date())) %>%

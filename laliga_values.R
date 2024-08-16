@@ -55,9 +55,9 @@ american_to_prob <- function(american_odds) {
   return(abs(probability))
 }
 
-odds_api_team_names <- c("Alavés", "Almería", "Athletic Bilbao", "Atlético Madrid", "Barcelona", "CA Osasuna","Cádiz CF", "Celta Vigo", "Getafe", "Girona", "Granada CF", "Las Palmas", "Mallorca", "Rayo Vallecano","Real Betis", "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Villarreal")
-xg_team_names <- c("Alaves", "Almeria", "Ath Bilbao", "Ath Madrid", "Barcelona", "Osasuna", "Cadiz", "Celta", "Getafe", "Girona", "Granada", "Las Palmas", "Mallorca", "Vallecano", "Betis", "Real Madrid", "Sociedad", "Sevilla", "Valencia", "Villarreal")
-dratings_team_names <- c("Alaves", "Almeria", "Athletic Club", "Atletico Madrid", "Barcelona", "Osasuna", "Cadiz", "Celta Vigo", "Getafe", "Girona", "Granada", "Las Palmas", "Mallorca", "Rayo Vallecano", "Betis", "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Villarreal")
+odds_api_team_names <- c("Alavés", "Almería", "Athletic Bilbao", "Atlético Madrid", "Barcelona", "CA Osasuna","Cádiz CF", "Celta Vigo", "Espanyol", "Getafe", "Girona", "Granada CF", "Las Palmas", "Leganés", "Mallorca", "Rayo Vallecano","Real Betis", "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Valladolid", "Villarreal")
+xg_team_names <- c("Alaves", "Almeria", "Ath Bilbao", "Ath Madrid", "Barcelona", "Osasuna", "Cadiz", "Celta", "Espanol", "Getafe", "Girona", "Granada", "Las Palmas", "Leganes", "Mallorca", "Vallecano", "Betis", "Real Madrid", "Sociedad", "Sevilla", "Valencia", "Valladolid", "Villarreal")
+dratings_team_names <- c("Alaves", "Almeria", "Athletic Club", "Atletico Madrid", "Barcelona", "Osasuna", "Cadiz", "Celta Vigo", "Espanyol", "Getafe", "Girona", "Granada", "Las Palmas", "Leganes", "Mallorca", "Rayo Vallecano", "Betis", "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Valladolid", "Villarreal")
  
 
 team_name_df <- data.frame(api_name = odds_api_team_names,
@@ -96,16 +96,16 @@ liga_dates <- paste0(format(min(liga_odds$commence_time), "%b %d"), " - ", forma
 
 # bund matchday number ---------------------------------------------------------
 
-matchday_url <- "https://www.besoccer.com/competition/scores/premier_league/2024"
+#matchday_url <- "https://www.besoccer.com/competition/scores/premier_league/2024"
 
-page <- read_html(matchday_url)
-xpath <- '//*[@id="anchorRound"]/h1'
+#page <- read_html(matchday_url)
+#xpath <- '//*[@id="anchorRound"]/h1'
 
 # Extract content using the XPath
-result <- page %>% html_nodes(xpath = xpath) %>% html_text()
+#result <- page %>% html_nodes(xpath = xpath) %>% html_text()
 
-result1 <- trimws(result) %>% gsub("Round", "Matchweek", .)
-
+#result1 <- trimws(result) %>% gsub("Round", "Matchweek", .)
+result1 <- "Matchweek x"
 
 # football xg -------------------------------------------------------------
 
@@ -230,26 +230,29 @@ liga_final <- liga_odds %>%
 
 
 crests <- data.frame("team" = xg_team_names,
-                     "url" = c("https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/96.png", 
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/6832.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/93.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/1068.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/83.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/97.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3842.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/85.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/2922.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9812.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3747.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/98.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/84.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/101.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/244.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/86.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/89.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/243.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/94.png",
-                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/102.png"))
+                     "url" = c("https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/96.png",   #1
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/6832.png", #2
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/93.png",   #3
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/1068.png", #4
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/83.png",   #5
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/97.png",   #6
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3842.png", #7
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/85.png",   #8
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/88.png",   #9
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/2922.png", #10
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9812.png", #11
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/3747.png", #12
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/98.png",   #13
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/17534.png", #14
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/84.png",   #15
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/101.png",  #16
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/244.png",  #17
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/86.png",   #18
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/89.png",   #19
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/243.png",  #20
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/94.png",   #21
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/95.png",   #22
+                               "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/102.png")) #23
 
 prob_to_odds <- function(probability) {
   if (is.na(probability)) {

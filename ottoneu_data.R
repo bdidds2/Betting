@@ -68,6 +68,9 @@ players_url <- "https://ottoneu.fangraphs.com/averageValues?export=csv"
 projection_systems <- c("atc", "zips", "steamer", "thebat", "thebatx")
 projection_systems1 <- c("atc", "zips", "steamer", "thebat")
 
+projection_systems_ros <- c("ratcdc", "rzipsdc", "steamerr", "rthebatx")
+projection_systems_ros1 <- c("ratcdc", "rzipsdc", "steamerr", "rthebat")
+
 players <- data.frame(read_csv(players_url)) |>
   clean_names() |>
   mutate(avg_salary = as.integer(gsub("\\$", "", avg_salary)),
@@ -90,7 +93,7 @@ hitters_df <- data.frame(system = character(),
                          sb = numeric())
 
 
-for (i in projection_systems) {
+for (i in projection_systems_ros) {
   hitter_url <- paste0("https://www.fangraphs.com/api/projections?type=", i,"&stats=bat&pos=all&team=0&players=0&lg=all")
   hitters_list <- read_json(hitter_url)
   df <- map_dfr(hitters_list, ~as.data.frame(t(unlist(.)))) |> 
@@ -109,7 +112,7 @@ hitter_values <- data.frame(player_name = character(),
                             dollars = double(),
                             system = character())
 
-for (i in projection_systems) {
+for (i in projection_systems_ros) {
   hitter_url <- paste0("https://www.fangraphs.com/api/fantasy/auction-calculator/data?teams=12&lg=MLB&dollars=400&mb=1&mp=5&msp=5&mrp=5&type=bat&players=&proj=", i,"&split=&points=c%7C0%2C1%2C2%2C3%2C4%7C0%2C1%2C2%2C3%2C4&rep=0&drp=0&pp=C%2CSS%2C2B%2C3B%2COF%2C1B&pos=1%2C1%2C1%2C1%2C5%2C1%2C1%2C0%2C0%2C1%2C5%2C5%2C0%2C17%2C0&sort=&view=0")
   hitters_list_values <- fromJSON(hitter_url)
   df <- as.data.frame(hitters_list_values$data) |>
@@ -119,7 +122,7 @@ for (i in projection_systems) {
   hitter_values <- bind_rows(hitter_values, df)
 }
 
-
+hitter_projections <- left_join(hitters_df, hitter_values %>% select(c(playerid, dollars, system)), by = c("playerid", "system"))
 
 # pitcher projections and values ------------------------------------------
 
@@ -137,7 +140,7 @@ pitchers_df <- data.frame(system = character(),
                           gs = numeric())
 
 
-for (i in projection_systems1) {
+for (i in projection_systems_ros1) {
   pitcher_url <- paste0("https://www.fangraphs.com/api/projections?type=", i, "&stats=pit&pos=all&team=0&players=0&lg=all")
   pitchers_list <- read_json(pitcher_url)
   df <- map_dfr(pitchers_list, ~as.data.frame(t(unlist(.)))) |> 
@@ -156,7 +159,7 @@ pitcher_values <- data.frame(player_name = character(),
                              dollars = double(),
                              system = character())
 
-for (i in projection_systems) {
+for (i in projection_systems_ros1) {
   pitcher_url <- paste0("https://www.fangraphs.com/api/fantasy/auction-calculator/data?teams=12&lg=MLB&dollars=400&mb=1&mp=5&msp=5&mrp=5&type=pit&players=&proj=", i,"&split=&points=c%7C0%2C1%2C2%2C3%2C4%7C0%2C1%2C2%2C3%2C4&rep=0&drp=0&pp=C%2CSS%2C2B%2C3B%2COF%2C1B&pos=1%2C1%2C1%2C1%2C5%2C1%2C1%2C0%2C0%2C1%2C5%2C5%2C0%2C17%2C0&sort=&view=0")
   pitchers_list_values <- fromJSON(pitcher_url)
   df <- as.data.frame(pitchers_list_values$data) |>
@@ -166,10 +169,10 @@ for (i in projection_systems) {
   pitcher_values <- bind_rows(pitcher_values, df)
 }
 
+pitcher_projections <- left_join(pitchers_df, pitcher_values %>% select(c(playerid, dollars, system)), by = c("playerid", "system"))
 
 
-# get rosters -------------------------------------------------------------
-
+# add roster info ---------------------------------------------------------
 
 get_rosters <- function(league_number) {
   rosters_url <- paste0("https://ottoneu.fangraphs.com/", as.character(league_number), "/rosterexport?csv=1")
@@ -183,6 +186,194 @@ get_rosters <- function(league_number) {
   return(rosters)
 }
 
+bum_bum_id <- "1023"
+dani_rojas_id <- "1275"
+alfredo_id <- "1609"
+
+bum_bum_roster <- get_rosters(bum_bum_id) %>% select(c(fg_major_league_id,team_id, team_name, salary))
+dani_rojas_roster <- get_rosters(dani_rojas_id) %>% select(c(fg_major_league_id,team_id, team_name, salary))
+alfredo_roster <- get_rosters(alfredo_id) %>% select(c(fg_major_league_id,team_id, team_name, salary))
+
+hitters_all <- hitter_projections %>%
+  left_join(., bum_bum_roster, by = c("playerid" = "fg_major_league_id")) %>%
+  rename("bum_bum_team" = "team_name",
+         "bum_bum_team_id" = "team_id",
+         "bum_bum_salary" = "salary") %>%
+  mutate(bum_bum_team = ifelse(is.na(bum_bum_team), "FA", bum_bum_team),
+         bum_bum_team = trimws(gsub("[^a-zA-Z ]", "", bum_bum_team))) %>%
+  left_join(., dani_rojas_roster, by = c("playerid" = "fg_major_league_id")) %>%
+  rename("dani_rojas_team" = "team_name",
+         "dani_rojas_team_id" = "team_id",
+         "dani_rojas_salary" = "salary") %>%
+  mutate(dani_rojas_team = ifelse(is.na(dani_rojas_team), "FA", dani_rojas_team),
+         dani_rojas_team = trimws(gsub("[^a-zA-Z ]", "", dani_rojas_team))) %>%
+  left_join(., alfredo_roster, by = c("playerid" = "fg_major_league_id")) %>%
+  rename("alfredo_team" = "team_name",
+         "alfredo_team_id" = "team_id",
+         "alfredo_salary" = "salary") %>%
+  mutate(alfredo_team = ifelse(is.na(alfredo_team), "FA", alfredo_team),
+         alfredo_team = trimws(gsub("[^a-zA-Z ]", "", alfredo_team)))
+
+hitters_summary <- hitters_all %>%
+  left_join(., players %>% select(fg_major_league_id, avg_salary, last_10, roster), by = c("playerid" = "fg_major_league_id")) %>%
+  group_by(player_name, team, minpos, avg_salary, last_10, roster, bum_bum_team, dani_rojas_team, alfredo_team) %>%
+  summarize(dollars_avg = mean(dollars),
+            dollars_max = max(dollars),
+            ab = mean(ab),
+            hr = mean(hr),
+            r = mean(r),
+            rbi = mean(rbi),
+            sb = mean(sb),
+            avg = mean(h) / mean(ab),
+            bum_bum_salary = mean(bum_bum_salary),
+            dani_rojas_salary = mean(dani_rojas_salary),
+            alfredo_salary = mean(alfredo_salary)) %>%
+  ungroup() %>%
+  filter(!is.na(dollars_avg))
+
+hitters_details <- hitters_all %>%
+  select(c(player_name, system, dollars, ab, hr, r, rbi, sb, avg))
+
+reactable_hitters <- reactable(
+  hitters_summary,
+  columns = list(
+    player_name = colDef(name = "Player", minWidth = 170, filterable = TRUE),
+    #position_group = colDef(name = "Position Group", minWidth = 100, filterable = TRUE),
+    #position_group_rank = colDef(name = "Rank", align = "center"),
+    minpos = colDef(name = "Position", minWidth = 100, filterable = TRUE),
+    avg_salary = colDef(name = "Avg Salary"),
+    last_10 = colDef(name = "Last 10 Salary"),
+    bum_bum_team = colDef(name = "bum bum", filterable = TRUE),
+    dani_rojas_team = colDef(name = "dani rojas", filterable = TRUE),
+    alfredo_team = colDef(name = "alfredo", filterable = TRUE),
+    dollars_avg = colDef(name = "$$", align = "center",
+                         format = colFormat(prefix = "$", digits = 0)),
+    dollars_max = colDef(name = "$ max", align = "center",
+                         format = colFormat(prefix = "$", digits = 0)),
+    ab = colDef(name = "AB", align = "center",
+                format = colFormat(digits = 0)),
+    hr = colDef(name = "HR", align = "center",
+                format = colFormat(digits = 0)),
+    r = colDef(name = "R", align = "center",
+               format = colFormat(digits = 0)),
+    rbi = colDef(name = "RBI", align = "center",
+                 format = colFormat(digits = 0)),
+    sb = colDef(name = "SB", align = "center",
+                format = colFormat(digits = 0)),
+    avg = colDef(name = "BA", align = "center",
+                 format = colFormat(digits = 3))),
+  defaultColDef = colDef(minWidth = 62, format = colFormat(digits = 0)),
+  defaultPageSize = 40,
+  style = list(fontFamily = "Work Sans, sans-serif"),
+  details = function(index){
+    #risk_data <- CO2[CO2$Plant == data$Plant[index], ]
+    risk_data <- hitters_details[hitters_details$player_name == hitters_summary$player_name[index], ]
+    risk_data_1 <- risk_data %>% select(-player_name) %>%
+      mutate(system = case_when(system == "ratcdc" ~ "ATC",
+                                system == "rzipsdc" ~ "ZiPS",
+                                system == "steamerr" ~ "Steamer",
+                                system == "rthebat" ~ "THE BAT",
+                                system == "rthebatx" ~ "THE BAT X",
+                                TRUE ~ NA))
+    htmltools::div(style = "padding: 1rem",
+                   reactable(risk_data_1, outlined = TRUE,
+                             columns = list(
+                               avg = colDef(name = "avg", format = colFormat(digits = 3))),
+                             defaultColDef = colDef(maxWidth = 80, format = colFormat(digits = 0)))
+    )
+  }
+)
+
+
+pitchers_all <- pitcher_projections %>%
+  left_join(., bum_bum_roster, by = c("playerid" = "fg_major_league_id")) %>%
+  rename("bum_bum_team" = "team_name",
+         "bum_bum_team_id" = "team_id",
+         "bum_bum_salary" = "salary") %>%
+  mutate(bum_bum_team = ifelse(is.na(bum_bum_team), "FA", bum_bum_team),
+         bum_bum_team = trimws(gsub("[^a-zA-Z ]", "", bum_bum_team))) %>%
+  left_join(., dani_rojas_roster, by = c("playerid" = "fg_major_league_id")) %>%
+  rename("dani_rojas_team" = "team_name",
+         "dani_rojas_team_id" = "team_id",
+         "dani_rojas_salary" = "salary") %>%
+  mutate(dani_rojas_team = ifelse(is.na(dani_rojas_team), "FA", dani_rojas_team),
+         dani_rojas_team = trimws(gsub("[^a-zA-Z ]", "", dani_rojas_team))) %>%
+  left_join(., alfredo_roster, by = c("playerid" = "fg_major_league_id")) %>%
+  rename("alfredo_team" = "team_name",
+         "alfredo_team_id" = "team_id",
+         "alfredo_salary" = "salary") %>%
+  mutate(alfredo_team = ifelse(is.na(alfredo_team), "FA", alfredo_team),
+         alfredo_team = trimws(gsub("[^a-zA-Z ]", "", alfredo_team)))
+
+
+pitchers_summary <- pitchers_all %>%
+  left_join(., players %>% select(fg_major_league_id, avg_salary, last_10, roster), by = c("playerid" = "fg_major_league_id")) %>%
+  group_by(player_name, team, avg_salary, last_10, roster, bum_bum_team, dani_rojas_team, alfredo_team) %>%
+  summarize(dollars_avg = mean(dollars),
+            dollars_max = max(dollars),
+            ip = mean(ip),
+            w = mean(w),
+            k = mean(so),
+            sv = mean(sv),
+            era = mean(era),
+            whip = mean(whip),
+            bum_bum_salary = mean(bum_bum_salary),
+            dani_rojas_salary = mean(dani_rojas_salary),
+            alfredo_salary = mean(alfredo_salary)) %>%
+  ungroup() %>%
+  filter(!is.na(dollars_avg))
+
+pitchers_details <- pitchers_all %>%
+  select(c(player_name, system, dollars, ip, w, k = so, sv, era, whip))
+
+reactable_pitchers <- reactable(
+  pitchers_summary,
+  columns = list(
+    player_name = colDef(name = "Player", minWidth = 170, filterable = TRUE),
+    #position_group = colDef(name = "Position Group", minWidth = 100, filterable = TRUE),
+    #position_group_rank = colDef(name = "Rank", align = "center"),
+    avg_salary = colDef(name = "Avg Salary"),
+    last_10 = colDef(name = "Last 10 Salary"),
+    bum_bum_team = colDef(name = "bum bum", filterable = TRUE),
+    dani_rojas_team = colDef(name = "dani rojas", filterable = TRUE),
+    alfredo_team = colDef(name = "alfredo", filterable = TRUE),
+    dollars_avg = colDef(name = "$$", align = "center",
+                         format = colFormat(prefix = "$", digits = 0)),
+    dollars_max = colDef(name = "$ max", align = "center",
+                         format = colFormat(prefix = "$", digits = 0)),
+    ip = colDef(name = "IP", align = "center",
+                format = colFormat(digits = 0)),
+    w = colDef(name = "Wins", align = "center",
+                format = colFormat(digits = 0)),
+    k = colDef(name = "Ks", align = "center",
+               format = colFormat(digits = 0)),
+    sv = colDef(name = "Saves", align = "center",
+                 format = colFormat(digits = 0)),
+    era = colDef(name = "ERA", align = "center",
+                format = colFormat(digits = 2)),
+    whip = colDef(name = "WHIP", align = "center",
+                 format = colFormat(digits = 2))),
+  defaultColDef = colDef(minWidth = 62, format = colFormat(digits = 0)),
+  defaultPageSize = 40,
+  style = list(fontFamily = "Work Sans, sans-serif"),
+  details = function(index){
+    #risk_data <- CO2[CO2$Plant == data$Plant[index], ]
+    risk_data <- pitchers_details[pitchers_details$player_name == pitchers_summary$player_name[index], ]
+    risk_data_1 <- risk_data %>% select(-player_name) %>%
+      mutate(system = case_when(system == "ratcdc" ~ "ATC",
+                                system == "rzipsdc" ~ "ZiPS",
+                                system == "steamerr" ~ "Steamer",
+                                system == "rthebat" ~ "THE BAT",
+                                TRUE ~ NA))
+    htmltools::div(style = "padding: 1rem",
+                   reactable(risk_data_1, outlined = TRUE,
+                             columns = list(
+                               era = colDef(name = "ERA", format = colFormat(digits = 2)),
+                               whip = colDef(name = "WHIP", format = colFormat(digits = 2))),
+                             defaultColDef = colDef(maxWidth = 80, format = colFormat(digits = 0)))
+    )
+  }
+)
 
 # get full player dfs -----------------------------------------------------
 

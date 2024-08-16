@@ -33,7 +33,7 @@ url <- paste0(base, endpoint)
 
 response <- GET(url)
 
-bund_week_filter <- Sys.Date() + 6
+bund_week_filter <- Sys.Date() + 10
 
 # Check the response status
 bund_h2h_content <- fromJSON(content(response, "text")) %>%
@@ -96,16 +96,17 @@ bund_dates <- paste0(format(min(bund_odds$commence_time), "%b %d"), " - ", forma
 
 # bund matchday number ---------------------------------------------------------
 
-matchday_url <- "https://www.besoccer.com/competition/scores/premier_league/2024"
+#matchday_url <- "https://www.besoccer.com/competition/scores/premier_league/2024"
 
-page <- read_html(matchday_url)
-xpath <- '//*[@id="anchorRound"]/h1'
+#page <- read_html(matchday_url)
+#xpath <- '//*[@id="anchorRound"]/h1'
 
 # Extract content using the XPath
-result <- page %>% html_nodes(xpath = xpath) %>% html_text()
+#result <- page %>% html_nodes(xpath = xpath) %>% html_text()
 
-result1 <- trimws(result) %>% gsub("Round", "Matchweek", .)
+#result1 <- trimws(result) %>% gsub("Round", "Matchweek", .)
 
+result1 <- "Matchweek x"
 
 # football xg -------------------------------------------------------------
 
