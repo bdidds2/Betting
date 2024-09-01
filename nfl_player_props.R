@@ -20,9 +20,11 @@ library(ggplot2)
 
 teams_url <- "https://en.wikipedia.org/wiki/National_Football_League"
 
-team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
-  html_table() %>% .[[1]] %>%
-  select("full_name" = "Club[66]") %>%
+team_table <- read_html(teams_url) %>% 
+  html_nodes("table.wikitable") %>%
+  html_table() %>% 
+  .[[2]] %>%
+  select("full_name" = "Club[63]") %>%
   filter(full_name != "American Football Conference", full_name != "National Football Conference", !grepl("relocated", full_name)) %>%
   mutate(full_name = gsub("[^a-zA-Z0-9 ]", "", full_name)) %>%
   separate(full_name, c("location","name"),sep="\\s+(?=\\S*$)") %>%
@@ -65,7 +67,7 @@ team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
 # player headshots --------------------------------------------------------
 
 options(nflreadr.verbose = FALSE)
-headshots <- load_rosters(2023) %>%
+headshots <- load_rosters(2024) %>%
   select(full_name, headshot_url, team) %>%
   mutate(dup = case_when(team == "CAR" & full_name == "Lamar Jackson" ~ 1, 
                          team == "JAX" & full_name == "Josh Allen" ~ 1,
@@ -81,7 +83,7 @@ headshots <- load_rosters(2023) %>%
 # api setup ---------------------------------------------------------------
 
 
-api <- "935bb399373baa6304a140c7a6cee4fc"
+api <- "d72d888a7e2831439aa64a8ac1525f71"
 base <- "https://api.the-odds-api.com"
 sport <- "americanfootball_nfl"
 markets <- "h2h"
@@ -107,25 +109,25 @@ content_nfl_props <- fromJSON(content(response, "text")) %>%
   unnest(., cols = c(markets), names_sep = "_") %>%
   unnest(., cols = c(markets_outcomes), names_sep = "_") %>%
   mutate(commence_time = with_tz(ymd_hms(commence_time, tz = "UTC"), tzone = "America/New_York"),
-         week = case_when(commence_time >= as.Date("2023-09-07") & commence_time < as.Date("2023-09-12") ~ "week_1",
-                          commence_time >= as.Date("2023-09-14") & commence_time < as.Date("2023-09-19") ~ "week_2",
-                          commence_time >= as.Date("2023-09-21") & commence_time < as.Date("2023-09-26") ~ "week_3",
-                          commence_time >= as.Date("2023-09-28") & commence_time < as.Date("2023-10-03") ~ "week_4",
-                          commence_time >= as.Date("2023-10-05") & commence_time < as.Date("2023-10-10") ~ "week_5",
-                          commence_time >= as.Date("2023-10-12") & commence_time < as.Date("2023-10-17") ~ "week_6",
-                          commence_time >= as.Date("2023-10-19") & commence_time < as.Date("2023-10-24") ~ "week_7",
-                          commence_time >= as.Date("2023-10-26") & commence_time < as.Date("2023-10-31") ~ "week_8",
-                          commence_time >= as.Date("2023-11-02") & commence_time < as.Date("2023-11-07") ~ "week_9",
-                          commence_time >= as.Date("2023-11-09") & commence_time < as.Date("2023-11-14") ~ "week_10",
-                          commence_time >= as.Date("2023-11-16") & commence_time < as.Date("2023-11-21") ~ "week_11",
-                          commence_time >= as.Date("2023-11-23") & commence_time < as.Date("2023-11-28") ~ "week_12",
-                          commence_time >= as.Date("2023-11-30") & commence_time < as.Date("2023-12-05") ~ "week_13",
-                          commence_time >= as.Date("2023-12-07") & commence_time < as.Date("2023-12-12") ~ "week_14",
-                          commence_time >= as.Date("2023-12-14") & commence_time < as.Date("2023-12-19") ~ "week_15",
-                          commence_time >= as.Date("2023-12-21") & commence_time < as.Date("2023-12-26") ~ "week_16",
-                          commence_time >= as.Date("2023-12-28") & commence_time < as.Date("2024-01-02") ~ "week_17",
-                          commence_time >= as.Date("2024-01-04") & commence_time < as.Date("2024-01-09") ~ "week_18",
-                          TRUE ~ "Playoffs"),
+         week = case_when(commence_time >= as.Date("2024-09-05") & commence_time < as.Date("2024-09-10") ~ "week_1",
+                          commence_time >= as.Date("2024-09-12") & commence_time < as.Date("2024-09-17") ~ "week_2",
+                          commence_time >= as.Date("2024-09-19") & commence_time < as.Date("2024-09-24") ~ "week_3",
+                          commence_time >= as.Date("2024-09-26") & commence_time < as.Date("2024-10-01") ~ "week_4",
+                          commence_time >= as.Date("2024-10-03") & commence_time < as.Date("2024-10-08") ~ "week_5",
+                          commence_time >= as.Date("2024-10-10") & commence_time < as.Date("2024-10-15") ~ "week_6",
+                          commence_time >= as.Date("2024-10-17") & commence_time < as.Date("2024-10-22") ~ "week_7",
+                          commence_time >= as.Date("2024-10-24") & commence_time < as.Date("2024-10-29") ~ "week_8",
+                          commence_time >= as.Date("2024-10-31") & commence_time < as.Date("2024-11-05") ~ "week_9",
+                          commence_time >= as.Date("2024-11-07") & commence_time < as.Date("2024-11-12") ~ "week_10",
+                          commence_time >= as.Date("2024-11-14") & commence_time < as.Date("2024-11-19") ~ "week_11",
+                          commence_time >= as.Date("2024-11-21") & commence_time < as.Date("2024-11-26") ~ "week_12",
+                          commence_time >= as.Date("2024-11-28") & commence_time < as.Date("2024-12-03") ~ "week_13",
+                          commence_time >= as.Date("2024-12-05") & commence_time < as.Date("2024-12-10") ~ "week_14",
+                          commence_time >= as.Date("2024-12-12") & commence_time < as.Date("2024-12-17") ~ "week_15",
+                          commence_time >= as.Date("2024-12-19") & commence_time < as.Date("2024-12-24") ~ "week_16",
+                          commence_time >= as.Date("2024-12-26") & commence_time < as.Date("2024-12-31") ~ "week_17",
+                          commence_time >= as.Date("2025-01-02") & commence_time < as.Date("2025-01-07") ~ "week_18",
+                          TRUE ~ "Unknown"),
          week_filter = ifelse(commence_time <= as.Date(week_filter_date) & commence_time >= week_filter_date1, 1, 0))
 
 nfl_week_raw <- unique(content_nfl_props %>% filter(week_filter == 1) %>% select(week)) %>% pull()
@@ -417,7 +419,7 @@ ciely_props <- bind_rows(ciely_qb, ciely_rb, ciely_wr, ciely_te) %>%
 
 # fantasy sharks projections ------------------------------------------------
 
-shark_segment <- nfl_week_int + 786
+shark_segment <- nfl_week_int + 818
 
 
 sharks_qb_raw <- read.csv(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?csv=1&Sort=&Segment=", shark_segment, "&Position=1&scoring=2&League=&uid=4&uid2=&printable="))
@@ -483,6 +485,48 @@ sharks_props <- bind_rows(sharks_qb, sharks_rb, sharks_wr, sharks_te) %>%
                           TRUE ~ team)) %>%
   mutate(site = "sharks",
          type = "projection")
+
+# nfl fantasy -------------------------------------------------------------
+
+nfl_fantasy_columns_names <- c("player_team", "opponent", "payd", "patd", "paint", "ruyd", "rutd", "recep", "reyd", "retd", "delete", "delete1", "delete2", "delete3", "delete4")
+
+nfl_fantasy_url_1 <- paste0("https://fantasy.nfl.com/research/projections?offset=1&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_2 <- paste0("https://fantasy.nfl.com/research/projections?offset=26&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_3 <- paste0("https://fantasy.nfl.com/research/projections?offset=51&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_4 <- paste0("https://fantasy.nfl.com/research/projections?offset=76&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_5 <- paste0("https://fantasy.nfl.com/research/projections?offset=101&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_6 <- paste0("https://fantasy.nfl.com/research/projections?offset=126&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_7 <- paste0("https://fantasy.nfl.com/research/projections?offset=151&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_8 <- paste0("https://fantasy.nfl.com/research/projections?offset=176&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_9 <- paste0("https://fantasy.nfl.com/research/projections?offset=201&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_10 <- paste0("https://fantasy.nfl.com/research/projections?offset=226&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+nfl_fantasy_url_11 <- paste0("https://fantasy.nfl.com/research/projections?offset=251&position=O&sort=projectedPts&statCategory=projectedStats&statSeason=2024&statType=weekProjectedStats&statWeek=", nfl_week_int)
+
+
+nfl_fantasy_raw <- bind_rows(
+  nfl_fantasy_url_1 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_2 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_3 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_4 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_5 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_6 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_7 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_8 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_9 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_10 %>% read_html() %>% html_table(),
+  nfl_fantasy_url_11 %>% read_html() %>% html_table())
+
+nfl_fantasy_transform1 <- nfl_fantasy_raw %>%
+  setNames(nfl_fantasy_columns_names) %>%
+  filter(opponent != "Opp") %>%
+  select(c(1:10)) %>%
+  #rowwise() %>%
+  mutate(player_split = str_split(player_team, " - "),
+         player1 = map_chr(player_split, ~ .x[1]),
+         player = str_sub(player1, start = 1, end = nchar(player1) - 3),
+         team1 = map_chr(player_split, ~ .x[2]),
+         team = str_trim(str_sub(team1, start = 1, end = 3))) %>%
+  select(-c(player_split, player1, team1))
 
 
 # trends ------------------------------------------------------------------

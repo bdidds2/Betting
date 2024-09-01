@@ -24,9 +24,11 @@ library(readr)
 
 teams_url <- "https://en.wikipedia.org/wiki/National_Football_League"
 
-team_table <- read_html(teams_url) %>% html_nodes("table.wikitable") %>%
-  html_table() %>% .[[1]] %>%
-  select("full_name" = "Club[66]") %>%
+team_table <- read_html(teams_url) %>% 
+  html_nodes("table.wikitable") %>%
+  html_table() %>% 
+  .[[2]] %>%
+  select("full_name" = "Club[63]") %>%
   filter(full_name != "American Football Conference", full_name != "National Football Conference", !grepl("relocated", full_name)) %>%
   mutate(full_name = gsub("[^a-zA-Z0-9 ]", "", full_name)) %>%
   separate(full_name, c("location","name"),sep="\\s+(?=\\S*$)") %>%
@@ -76,7 +78,7 @@ american_to_prob <- function(american_odds) {
 # odds api setup ----------------------------------------------------------
 
 
-api <- "935bb399373baa6304a140c7a6cee4fc"
+api <- "d72d888a7e2831439aa64a8ac1525f71"
 base <- "https://api.the-odds-api.com"
 sport <- "americanfootball_nfl"
 markets <- "h2h,spreads,totals"
@@ -101,24 +103,24 @@ content_nfl <- fromJSON(content(response_nfl, "text")) %>%
   unnest(., cols = c(markets), names_sep = "_") %>%
   unnest(., cols = c(markets_outcomes), names_sep = "_") %>%
   mutate(commence_time = with_tz(ymd_hms(commence_time, tz = "UTC"), tzone = "America/New_York"),
-         week = case_when(commence_time >= as.Date("2023-09-07") & commence_time < as.Date("2023-09-12") ~ "week_1",
-                          commence_time >= as.Date("2023-09-14") & commence_time < as.Date("2023-09-19") ~ "week_2",
-                          commence_time >= as.Date("2023-09-21") & commence_time < as.Date("2023-09-26") ~ "week_3",
-                          commence_time >= as.Date("2023-09-28") & commence_time < as.Date("2023-10-03") ~ "week_4",
-                          commence_time >= as.Date("2023-10-05") & commence_time < as.Date("2023-10-10") ~ "week_5",
-                          commence_time >= as.Date("2023-10-12") & commence_time < as.Date("2023-10-17") ~ "week_6",
-                          commence_time >= as.Date("2023-10-19") & commence_time < as.Date("2023-10-24") ~ "week_7",
-                          commence_time >= as.Date("2023-10-26") & commence_time < as.Date("2023-10-31") ~ "week_8",
-                          commence_time >= as.Date("2023-11-02") & commence_time < as.Date("2023-11-07") ~ "week_9",
-                          commence_time >= as.Date("2023-11-09") & commence_time < as.Date("2023-11-14") ~ "week_10",
-                          commence_time >= as.Date("2023-11-16") & commence_time < as.Date("2023-11-21") ~ "week_11",
-                          commence_time >= as.Date("2023-11-23") & commence_time < as.Date("2023-11-28") ~ "week_12",
-                          commence_time >= as.Date("2023-11-30") & commence_time < as.Date("2023-12-05") ~ "week_13",
-                          commence_time >= as.Date("2023-12-07") & commence_time < as.Date("2023-12-12") ~ "week_14",
-                          commence_time >= as.Date("2023-12-14") & commence_time < as.Date("2023-12-19") ~ "week_15",
-                          commence_time >= as.Date("2023-12-21") & commence_time < as.Date("2023-12-26") ~ "week_16",
-                          commence_time >= as.Date("2023-12-28") & commence_time < as.Date("2023-01-02") ~ "week_17",
-                          commence_time >= as.Date("2024-01-04") & commence_time < as.Date("2024-01-09") ~ "week_18",
+         week = case_when(commence_time >= as.Date("2024-09-05") & commence_time < as.Date("2024-09-10") ~ "week_1",
+                          commence_time >= as.Date("2024-09-12") & commence_time < as.Date("2024-09-17") ~ "week_2",
+                          commence_time >= as.Date("2024-09-19") & commence_time < as.Date("2024-09-24") ~ "week_3",
+                          commence_time >= as.Date("2024-09-26") & commence_time < as.Date("2024-10-01") ~ "week_4",
+                          commence_time >= as.Date("2024-10-03") & commence_time < as.Date("2024-10-08") ~ "week_5",
+                          commence_time >= as.Date("2024-10-10") & commence_time < as.Date("2024-10-15") ~ "week_6",
+                          commence_time >= as.Date("2024-10-17") & commence_time < as.Date("2024-10-22") ~ "week_7",
+                          commence_time >= as.Date("2024-10-24") & commence_time < as.Date("2024-10-29") ~ "week_8",
+                          commence_time >= as.Date("2024-10-31") & commence_time < as.Date("2024-11-05") ~ "week_9",
+                          commence_time >= as.Date("2024-11-07") & commence_time < as.Date("2024-11-12") ~ "week_10",
+                          commence_time >= as.Date("2024-11-14") & commence_time < as.Date("2024-11-19") ~ "week_11",
+                          commence_time >= as.Date("2024-11-21") & commence_time < as.Date("2024-11-26") ~ "week_12",
+                          commence_time >= as.Date("2024-11-28") & commence_time < as.Date("2024-12-03") ~ "week_13",
+                          commence_time >= as.Date("2024-12-05") & commence_time < as.Date("2024-12-10") ~ "week_14",
+                          commence_time >= as.Date("2024-12-12") & commence_time < as.Date("2024-12-17") ~ "week_15",
+                          commence_time >= as.Date("2024-12-19") & commence_time < as.Date("2024-12-24") ~ "week_16",
+                          commence_time >= as.Date("2024-12-26") & commence_time < as.Date("2024-12-31") ~ "week_17",
+                          commence_time >= as.Date("2025-01-02") & commence_time < as.Date("2025-01-07") ~ "week_18",
                           TRUE ~ "Unknown"),
          week_filter = ifelse(commence_time <= as.Date(week_filter_date), 1, 0))
 
@@ -220,58 +222,58 @@ actionnetwork_df <- read.xlsx(actionnetwork_url) %>%
 # oddsshark ---------------------------------------------------------------
 
 
-oddsshark_url <- "https://www.oddsshark.com/nfl/computer-picks"
-oddsshark_count <- read_html(oddsshark_url) %>%
-  html_nodes(xpath = '/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div') %>%
-  html_text() %>%
-  str_count(., "/") / 3 +1
+#oddsshark_url <- "https://www.oddsshark.com/nfl/computer-picks"
+#oddsshark_count <- read_html(oddsshark_url) %>%
+#  html_nodes(xpath = '/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div') %>%
+#  html_text() %>%
+#  str_count(., "/") / 3 +1
 
 
-oddsshark_df <- data.frame()
+#oddsshark_df <- data.frame()
 
-for (n in 1:oddsshark_count){
-  oddsshark_away_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[1]')) %>% html_text()
-  oddsshark_home_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[3]')) %>% html_text()
-  oddsshark_away_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[2]/div/span[2]')) %>% html_text()
-  oddsshark_home_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[3]/td[1]/div/span[2]')) %>% html_text()
-  iteration_result <- data.frame(
-    game = n,
-    away_team = ifelse(length(oddsshark_away_team) == 0, NA, oddsshark_away_team),
-    home_team = ifelse(length(oddsshark_home_team) == 0, NA, oddsshark_home_team),
-    oddsshark_away_score = ifelse(length(oddsshark_away_score) == 0, NA, oddsshark_away_score),
-    oddsshark_home_score = ifelse(length(oddsshark_home_score) == 0, NA, oddsshark_home_score)
-  )
-  oddsshark_df <- rbind(oddsshark_df, iteration_result)
-}
+#for (n in 1:oddsshark_count){
+#  oddsshark_away_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[1]')) %>% html_text()
+#  oddsshark_home_team <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[1]/div/span[3]')) %>% html_text()
+#  oddsshark_away_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[2]/td[2]/div/span[2]')) %>% html_text()
+#  oddsshark_home_score <- read_html(oddsshark_url) %>% html_nodes(xpath = paste0('/html/body/div[1]/div[2]/main/div[2]/div/article/div/div[2]/div/div[2]/div[1]/div/div[', n, ']/div[2]/table/tbody/tr[3]/td[1]/div/span[2]')) %>% html_text()
+#  iteration_result <- data.frame(
+#    game = n,
+#    away_team = ifelse(length(oddsshark_away_team) == 0, NA, oddsshark_away_team),
+#    home_team = ifelse(length(oddsshark_home_team) == 0, NA, oddsshark_home_team),
+#    oddsshark_away_score = ifelse(length(oddsshark_away_score) == 0, NA, oddsshark_away_score),
+#    oddsshark_home_score = ifelse(length(oddsshark_home_score) == 0, NA, oddsshark_home_score)
+#  )
+#  oddsshark_df <- rbind(oddsshark_df, iteration_result)
+#}
 
-oddsshark_df2 <- oddsshark_df %>%
-  left_join(., team_table, by = c("away_team" = "name")) %>%
-  mutate(away_team = full_name) %>%
-  select(-c(location, full_name)) %>%
-  left_join(., team_table, by = c("home_team" = "name")) %>%
-  mutate(home_team = full_name) %>%
-  select(-c(location, full_name)) %>%
-  filter(!is.na(away_team)) %>%
-  mutate(oddsshark_home_score = as.numeric(oddsshark_home_score),
-         oddsshark_away_score = as.numeric(oddsshark_away_score),
-         oddsshark_home_spread = oddsshark_away_score - oddsshark_home_score,
-         oddsshark_away_spread = oddsshark_home_score - oddsshark_away_score) %>%
-  rowwise() %>%
-  mutate(oddsshark_away_prob = spread_to_prob(oddsshark_away_spread)) %>%
-  ungroup() %>%
-  rowwise() %>%
-  mutate(oddsshark_home_prob = spread_to_prob(oddsshark_home_spread)) %>%
-  ungroup() %>%
-  select(-game) %>%
-  mutate(away_team = abbr.x,
-         home_team = abbr.y,
-         game_id = paste0(away_team, " - ", home_team)) %>%
-  select(game_id, everything()) %>%
-  select(-c(abbr.x,abbr.y)) %>%
-  rename("away_points" = "oddsshark_away_score", "home_points" = "oddsshark_home_score", "home_spread" = "oddsshark_home_spread", "away_spread" = "oddsshark_away_spread", "home_prob" = "oddsshark_home_prob", "away_prob" = "oddsshark_away_prob") %>%
-  mutate(total = away_points+home_points,
-         site = "shark") %>%
-  select(site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total)
+#oddsshark_df2 <- oddsshark_df %>%
+#  left_join(., team_table, by = c("away_team" = "name")) %>%
+#  mutate(away_team = full_name) %>%
+#  select(-c(location, full_name)) %>%
+#  left_join(., team_table, by = c("home_team" = "name")) %>%
+#  mutate(home_team = full_name) %>%
+#  select(-c(location, full_name)) %>%
+#  filter(!is.na(away_team)) %>%
+#  mutate(oddsshark_home_score = as.numeric(oddsshark_home_score),
+#         oddsshark_away_score = as.numeric(oddsshark_away_score),
+#         oddsshark_home_spread = oddsshark_away_score - oddsshark_home_score,
+#         oddsshark_away_spread = oddsshark_home_score - oddsshark_away_score) %>%
+#  rowwise() %>%
+#  mutate(oddsshark_away_prob = spread_to_prob(oddsshark_away_spread)) %>%
+#  ungroup() %>%
+#  rowwise() %>%
+#  mutate(oddsshark_home_prob = spread_to_prob(oddsshark_home_spread)) %>%
+#  ungroup() %>%
+#  select(-game) %>%
+#  mutate(away_team = abbr.x,
+#         home_team = abbr.y,
+#         game_id = paste0(away_team, " - ", home_team)) %>%
+#  select(game_id, everything()) %>%
+#  select(-c(abbr.x,abbr.y)) %>%
+#  rename("away_points" = "oddsshark_away_score", "home_points" = "oddsshark_home_score", "home_spread" = "oddsshark_home_spread", "away_spread" = "oddsshark_away_spread", "home_prob" = "oddsshark_home_prob", "away_prob" = "oddsshark_away_prob") %>%
+#  mutate(total = away_points+home_points,
+#         site = "shark") %>%
+#  select(site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total)
 
 
 
@@ -421,9 +423,25 @@ athletic_df <- athletic_raw %>%
 
 
 
+
+# sumer -------------------------------------------------------------------
+
+#sumer_sports_url <- paste0("https://sumersports.com/games/all/2024/", nfl_week_int)
+
+
+#home_team_1 <- sumer_sports_url %>% read_html() %>% 
+#  html_nodes('/html/body/div[2]/main/article/div/div/div[3]/div[1]/article/div/div[1]/div[2]/div[1]/div[1]/span[2]')
+
+
 # final plays -----------------------------------------------------------
 
-predictions_df <- bind_rows(actionnetwork_df, oddsshark_df2, dimers_df, dratings_df, athletic_df) %>%
+predictions_df <- bind_rows(
+  #actionnetwork_df, 
+  #oddsshark_df2,
+  dimers_df, 
+  dratings_df #,
+ # athletic_df
+  ) %>%
   mutate(type = "projection") %>%
   inner_join(., odds_df %>% select(game_id, commence_time, week), by = "game_id", relationship = "many-to-many") %>%
   select(c(commence_time, week, type, site, game_id, away_team, home_team, away_prob, home_prob, away_spread, home_spread, away_points, home_points, total))
@@ -555,8 +573,8 @@ nfl_game_gt <- try({nfl_game_data %>%
   cols_align(columns = "away_team_icon", align = "right") %>%
   cols_align(columns = "home_team_icon", align = "left") %>%
   tab_style(style = cell_borders(sides = c("right"), style = "solid", weight = px(3)),
-            locations = list(cells_body(columns = c(home_points_shark, favorite_and_spread)),
-                             cells_column_labels(columns = c(home_points_shark, favorite_and_spread))))  %>%
+            locations = list(cells_body(columns = c(contains("home_points_shark"), contains("favorite_and"))),
+                             cells_column_labels(columns = c(contains("home_points_shark"), contains("favorite_and")))))  %>%
   tab_style(style = cell_borders(sides = c("right"), style = "solid"),
             locations = list(cells_body(columns = contains("home_points_athletic")),
                              cells_column_labels(columns = contains("home_points_athletic")))) %>%
@@ -564,8 +582,8 @@ nfl_game_gt <- try({nfl_game_data %>%
               locations = list(cells_body(columns = contains("home_points_drating")),
                                cells_column_labels(columns = contains("home_points_drating")))) %>%
   tab_style(style = cell_borders(sides = c("right"), style = "solid", weight = px(3)),
-              locations = list(cells_body(columns = favorite_spread_delta_shark),
-                               cells_column_labels(columns = favorite_spread_delta_shark))) %>%
+              locations = list(cells_body(columns = contains("favorite_spread_delta_shark")),
+                               cells_column_labels(columns = contains("favorite_spread_delta_shark")))) %>%
   tab_source_note(source_note = md("Odds provided by **odds-api.com**; projections provided by **theathletic.com**, **actionnetwork.com**, **dratings.com**, **dimers.com**, and **oddsshark.com**")) %>%
   tab_style(style = cell_text(weight = "bold"),
             locations = list(cells_row_groups(),

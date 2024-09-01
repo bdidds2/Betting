@@ -55,9 +55,9 @@ american_to_prob <- function(american_odds) {
   return(abs(probability))
 }
 
-odds_api_team_names <- c("Augsburg", "Bayer Leverkusen", "Bayern Munich", "Borussia Dortmund", "Borussia Monchengladbach", "Eintracht Frankfurt", "FC Heidenheim", "FC Koln", "FSV Mainz 05", "RB Leipzig", "SC Freiburg", "SV Darmstadt 98", "TSG Hoffenheim", "Union Berlin", "VfB Stuttgart", "VfL Bochum", "VfL Wolfsburg", "Werder Bremen")
-xg_team_names <- c("Augsburg", "Leverkusen", "Bayern Munich", "Dortmund", "M'gladbach", "Ein Frankfurt", "Heidenheim", "FC Koln", "Mainz", "RB Leipzig", "Freiburg", "Darmstadt", "Hoffenheim", "Union Berlin", "Stuttgart", "Bochum", "Wolfsburg", "Werder Bremen")
-dratings_team_names <- c("Augsburg", "Bayer 04 Leverkusen", "Bayern Munich", "Dortmund", "Borussia Monchengladbach", "Eintracht Frankfurt", "FC Heidenheim", "FC Koln", "Mainz 05", "RB Leipzig", "Freiburg", "Darmstadt 98", "Hoffenheim", "Union Berlin", "VfB Stuttgart", "VfL Bochum", "Wolfsburg", "Werder Bremen")
+odds_api_team_names <- c("Augsburg", "Bayer Leverkusen", "Bayern Munich", "Borussia Dortmund", "Borussia Monchengladbach", "Eintracht Frankfurt", "Holstein Kiel", "1. FC Heidenheim", "FC Koln", "FSV Mainz 05", "RB Leipzig", "SC Freiburg", "SV Darmstadt 98", "TSG Hoffenheim", "Union Berlin", "FC St. Pauli", "VfB Stuttgart", "VfL Bochum", "VfL Wolfsburg", "Werder Bremen")
+xg_team_names <- c("Augsburg", "Leverkusen", "Bayern Munich", "Dortmund", "M'gladbach", "Ein Frankfurt", "Holstein Kiel", "Heidenheim", "FC Koln", "Mainz", "RB Leipzig", "Freiburg", "Darmstadt", "Hoffenheim", "Union Berlin", "St Pauli", "Stuttgart", "Bochum", "Wolfsburg", "Werder Bremen")
+dratings_team_names <- c("Augsburg", "Bayer 04 Leverkusen", "Bayern Munich", "Dortmund", "Borussia Monchengladbach", "Eintracht Frankfurt", "Holstein Kiel", "Heidenheim", "FC Koln", "Mainz 05", "RB Leipzig", "Freiburg", "Darmstadt 98", "Hoffenheim", "Union Berlin", "FC St. Pauli", "VfB Stuttgart", "VfL Bochum", "Wolfsburg", "Werder Bremen")
 
 
 team_name_df <- data.frame(api_name = odds_api_team_names,
