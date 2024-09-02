@@ -78,7 +78,7 @@ american_to_prob <- function(american_odds) {
 # odds api setup ----------------------------------------------------------
 
 
-api <- "d72d888a7e2831439aa64a8ac1525f71"
+api <- "935bb399373baa6304a140c7a6cee4fc"
 base <- "https://api.the-odds-api.com"
 sport <- "americanfootball_nfl"
 markets <- "h2h,spreads,totals"

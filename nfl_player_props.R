@@ -15,6 +15,7 @@ library(png)
 library(webshot2)
 library(gsheet)
 library(ggplot2)
+library(purrr)
 
 # team table --------------------------------------------------------------
 
@@ -109,7 +110,7 @@ content_nfl_props <- fromJSON(content(response, "text")) %>%
   unnest(., cols = c(markets), names_sep = "_") %>%
   unnest(., cols = c(markets_outcomes), names_sep = "_") %>%
   mutate(commence_time = with_tz(ymd_hms(commence_time, tz = "UTC"), tzone = "America/New_York"),
-         week = case_when(commence_time >= as.Date("2024-09-05") & commence_time < as.Date("2024-09-10") ~ "week_1",
+         week = case_when(commence_time >= as.Date("2024-09-04") & commence_time < as.Date("2024-09-10") ~ "week_1",
                           commence_time >= as.Date("2024-09-12") & commence_time < as.Date("2024-09-17") ~ "week_2",
                           commence_time >= as.Date("2024-09-19") & commence_time < as.Date("2024-09-24") ~ "week_3",
                           commence_time >= as.Date("2024-09-26") & commence_time < as.Date("2024-10-01") ~ "week_4",
@@ -528,6 +529,49 @@ nfl_fantasy_transform1 <- nfl_fantasy_raw %>%
          team = str_trim(str_sub(team1, start = 1, end = 3))) %>%
   select(-c(player_split, player1, team1))
 
+nfl_fantasy <- nfl_fantasy_transform1 %>%
+  select(-c(player_team, opponent)) %>%
+  rename("rec" = "recep") %>%
+  mutate(to_score = as.numeric(rutd) + as.numeric(retd),
+         payd = as.numeric(payd),
+         patd = as.numeric(patd),
+         paint = as.numeric(paint),
+         ruyd = as.numeric(ruyd),
+         rec = as.numeric(rec),
+         reyd = as.numeric(reyd)) %>%
+  select(-c(rutd, retd)) %>%
+  pivot_longer(cols = c(payd, patd, paint, ruyd, to_score, rec, reyd), 
+               names_to = "play", values_to = "point") %>%
+  mutate(point = as.numeric(point),
+         site = "nfl_fantasy",
+         type = "projection")
+
+# football guys --------------------------------------------------------------
+
+guys_raw <- paste0("https://www.footballguys.com/projections/download?year=2024&week=", nfl_week_int, "&dur=weekly&group=all&projectorid=-1&nflteamid=all") %>%
+  read.csv() %>%
+  clean_names()
+
+guys <- guys_raw %>%
+  select(c(name, team, pass_att, pass_cmp, pass_int, pass_td, pass_yds, rush_car, rush_td, rush_yds, rec_rec, rec_td, rec_yds)) %>%
+  rename("player" = "name",
+         "paat" = "pass_att",
+         "paco" = "pass_cmp",
+         "paint" = "pass_int",
+         "payd" = "pass_yds",
+         "patd" = "pass_td",
+         "ruat" = "rush_car",
+         "ruyd" = "rush_yds",
+         "rec" = "rec_rec",
+         "reyd" = "rec_yds") %>%
+  mutate(to_score = rush_td + rec_td) %>%
+  select(-c(rush_td, rec_td)) %>%
+  pivot_longer(cols = c(payd, patd, paint, ruyd, ruat, paco, paat, to_score, rec, reyd), 
+               names_to = "play", values_to = "point") %>%
+  mutate(point = as.numeric(point),
+         site = "guys",
+         type = "projection")
+
 
 # trends ------------------------------------------------------------------
 
@@ -601,7 +645,7 @@ stats_trend <- bind_rows(stats_passing, stats_rushing, stats_receiving) %>%
 
 # final -------------------------------------------------------------------
 
-projections_df <- bind_rows(ciely_props, pros_props, sharks_props) %>%
+projections_df <- bind_rows(pros_props, sharks_props, nfl_fantasy, guys) %>%
   inner_join(., book_props %>% select(c(player, play, game_id, week, commence_time, game_time, away_team, home_team)), by = c("player", "play"), relationship = "many-to-many") %>%
   select(c(commence_time, week, game_time, game_id, away_team, home_team, team, player, play, site, point))
 
@@ -643,7 +687,21 @@ props_df <- bind_rows(projections_df, book_props %>% left_join(projections_df %>
                                         play %in% c("paco", "paat") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 3 | abs(diff_sharks_fd_num) > 3) ~ 1,
                                         play %in% c("rec", "ruat") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 1.5 | abs(diff_sharks_fd_num) > 1.5) ~ 1,
                                         TRUE ~ 0), 
-                              NA)) %>%
+                              NA),
+         value_nfl = ifelse("point_nfl" %in% names(.), 
+                               case_when(play %in% c("payd") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 25 | abs(diff_nfl_fd_num) > 25) ~ 1,
+                                         play %in% c("reyd", "ruyd") & (abs(diff_nfl_dk) > .25 | abs(diff_nfl_fd) > .25) & (abs(diff_nfl_dk_num) > 15 | abs(diff_nfl_fd_num) > 15) ~ 1,
+                                         play %in% c("paco", "paat") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 3 | abs(diff_nfl_fd_num) > 3) ~ 1,
+                                         play %in% c("rec", "ruat") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 1.5 | abs(diff_nfl_fd_num) > 1.5) ~ 1,
+                                         TRUE ~ 0),
+                               NA),
+         value_guys = ifelse("point_guys" %in% names(.), 
+                               case_when(play %in% c("payd") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 25 | abs(diff_guys_fd_num) > 25) ~ 1,
+                                         play %in% c("reyd", "ruyd") & (abs(diff_guys_dk) > .25 | abs(diff_guys_fd) > .25) & (abs(diff_guys_dk_num) > 15 | abs(diff_guys_fd_num) > 15) ~ 1,
+                                         play %in% c("paco", "paat") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 3 | abs(diff_guys_fd_num) > 3) ~ 1,
+                                         play %in% c("rec", "ruat") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 1.5 | abs(diff_guys_fd_num) > 1.5) ~ 1,
+                                         TRUE ~ 0),
+                               NA)) %>%
   arrange(commence_time, player, play) %>%
   left_join(., headshots, by = join_by("player" == "full_name"), relationship = "many-to-many") %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = c("away_team" = "team_abbr")) %>%
@@ -654,6 +712,12 @@ props_df <- bind_rows(projections_df, book_props %>% left_join(projections_df %>
                        labels = c("Pass Comp", "Pass Att", "Pass Yds", "Pass TDs", "Int", "Rush Att", "Rush Yds", "Rec", "Rec Yds", "Anytime TD"))) %>%
   left_join(., stats_trend, by = c("player" = "player", "play" = "play")) %>%
   mutate(trend  = ifelse(length(stats) == 0, NA, list(stats - ifelse(is.na(point_fd_over), point_dk_over, point_fd_over))))
+
+props_df2 <- bind_rows(
+  projections_df %>% distinct(), 
+  book_props %>% left_join(projections_df %>% select(player, team), by = join_by(player), relationship = "many-to-many") ) %>%
+  filter(!is.na(commence_time), !is.na(odds)) %>%
+  distinct()
 
       
 value_columns <- c("value_ciely", "value_fp", "value_sharks")
