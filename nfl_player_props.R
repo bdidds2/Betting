@@ -649,80 +649,184 @@ projections_df <- bind_rows(pros_props, sharks_props, nfl_fantasy, guys) %>%
   inner_join(., book_props %>% select(c(player, play, game_id, week, commence_time, game_time, away_team, home_team)), by = c("player", "play"), relationship = "many-to-many") %>%
   select(c(commence_time, week, game_time, game_id, away_team, home_team, team, player, play, site, point))
 
-props_df <- bind_rows(projections_df, book_props %>% left_join(projections_df %>% select(player, team), by = join_by(player), relationship = "many-to-many") ) %>%
-  filter(!is.na(commence_time)) %>%
-  pivot_wider(names_from = c(site, outcome), values_from = c(odds, point, prob), values_fn = mean) %>%
-  select(-any_of(c("odds_ciely_NA", "odds_fp_NA", "odds_sharks_NA", "prob_ciely_NA", "prob_fp_NA", "prob_sharks_NA"))) %>%
-  rename_with(function(x) gsub("_NA$", "", x)) %>%
-  rowwise() %>%
-  mutate(diff_ciely_dk = ifelse("point_ciely" %in% names(.), (point_ciely - point_dk_over)/point_dk_over, NA),
-         diff_ciely_fd = ifelse("point_ciely" %in% names(.), (point_ciely - point_fd_over)/point_fd_over, NA),
-         diff_fp_dk = ifelse("point_fp" %in% names(.), (point_fp - point_dk_over)/point_dk_over, NA),
-         diff_fp_fd = ifelse("point_fp" %in% names(.), (point_fp - point_fd_over)/point_fd_over, NA),
-         diff_sharks_dk = ifelse("point_sharks" %in% names(.), (point_sharks - point_dk_over)/point_dk_over, NA),
-         diff_sharks_fd = ifelse("point_sharks" %in% names(.), (point_sharks - point_fd_over)/point_fd_over, NA),
-         diff_ciely_dk_num = ifelse("point_ciely" %in% names(.), (point_ciely - point_dk_over), NA),
-         diff_ciely_fd_num = ifelse("point_ciely" %in% names(.), (point_ciely - point_fd_over), NA),
-         diff_fp_dk_num = ifelse("point_fp" %in% names(.), (point_fp - point_dk_over), NA),
-         diff_fp_fd_num = ifelse("point_fp" %in% names(.), (point_fp - point_fd_over), NA),
-         diff_sharks_dk_num = ifelse("point_sharks" %in% names(.), (point_sharks - point_dk_over), NA),
-         diff_sharks_fd_num = ifelse("point_sharks" %in% names(.), (point_sharks - point_fd_over), NA),
-         value_ciely = ifelse("point_ciely" %in% names(.), 
-                                 case_when(play %in% c("payd") & (abs(diff_ciely_dk) > .15 | abs(diff_ciely_fd) > .15 ) & (abs(diff_ciely_dk_num) > 25 | abs(diff_ciely_fd_num) > 25) ~ 1,
-                                           play %in% c("reyd", "ruyd") & (abs(diff_ciely_dk) > .25 | abs(diff_ciely_fd) > .25) & (abs(diff_ciely_dk_num) > 15 | abs(diff_ciely_fd_num) > 15) ~ 1,
-                                           play %in% c("paco", "paat") & (abs(diff_ciely_dk) > .15 | abs(diff_ciely_fd) > .15) & (abs(diff_ciely_dk_num) > 3 | abs(diff_ciely_fd_num) > 3) ~ 1,
-                                           play %in% c("rec", "ruat") & (abs(diff_ciely_dk) > .15 | abs(diff_ciely_fd) > .15) & (abs(diff_ciely_dk_num) > 1.5 | abs(diff_ciely_fd_num) > 1.5) ~ 1,
-                                           TRUE ~ 0),
-                              NA),
-         value_fp = ifelse("point_fp" %in% names(.), 
-                              case_when(play %in% c("payd") & (abs(diff_fp_dk) > .15 | abs(diff_fp_fd) > .15) & (abs(diff_fp_dk_num) > 20 | abs(diff_fp_fd_num) > 20) ~ 1,
-                                        play %in% c("reyd", "ruyd") & (abs(diff_fp_dk) > .25 | abs(diff_fp_fd) > .25) & (abs(diff_fp_dk_num) > 15 | abs(diff_fp_fd_num) > 15) ~ 1,
-                                        play %in% c("paco", "paat") & (abs(diff_fp_dk) > .15 | abs(diff_fp_fd) > .15) & (abs(diff_fp_dk_num) > 3 | abs(diff_fp_fd_num) > 3) ~ 1,
-                                        play %in% c("rec", "ruat") & (abs(diff_fp_dk) > .15 | abs(diff_fp_fd) > .15) & (abs(diff_fp_dk_num) > 1.5 | abs(diff_fp_fd_num) > 1.5) ~ 1,
-                                        TRUE ~ 0), 
-                           NA),
-         value_sharks = ifelse("point_sharks" %in% names(.), 
-                              case_when(play %in% c("payd") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 25 | abs(diff_sharks_fd_num) > 25) ~ 1,
-                                        play %in% c("reyd", "ruyd") & (abs(diff_sharks_dk) > .25 | abs(diff_sharks_fd) > .25) & (abs(diff_sharks_dk_num) > 15 | abs(diff_sharks_fd_num) > 15) ~ 1,
-                                        play %in% c("paco", "paat") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 3 | abs(diff_sharks_fd_num) > 3) ~ 1,
-                                        play %in% c("rec", "ruat") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 1.5 | abs(diff_sharks_fd_num) > 1.5) ~ 1,
-                                        TRUE ~ 0), 
-                              NA),
-         value_nfl = ifelse("point_nfl" %in% names(.), 
-                               case_when(play %in% c("payd") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 25 | abs(diff_nfl_fd_num) > 25) ~ 1,
-                                         play %in% c("reyd", "ruyd") & (abs(diff_nfl_dk) > .25 | abs(diff_nfl_fd) > .25) & (abs(diff_nfl_dk_num) > 15 | abs(diff_nfl_fd_num) > 15) ~ 1,
-                                         play %in% c("paco", "paat") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 3 | abs(diff_nfl_fd_num) > 3) ~ 1,
-                                         play %in% c("rec", "ruat") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 1.5 | abs(diff_nfl_fd_num) > 1.5) ~ 1,
-                                         TRUE ~ 0),
-                               NA),
-         value_guys = ifelse("point_guys" %in% names(.), 
-                               case_when(play %in% c("payd") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 25 | abs(diff_guys_fd_num) > 25) ~ 1,
-                                         play %in% c("reyd", "ruyd") & (abs(diff_guys_dk) > .25 | abs(diff_guys_fd) > .25) & (abs(diff_guys_dk_num) > 15 | abs(diff_guys_fd_num) > 15) ~ 1,
-                                         play %in% c("paco", "paat") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 3 | abs(diff_guys_fd_num) > 3) ~ 1,
-                                         play %in% c("rec", "ruat") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 1.5 | abs(diff_guys_fd_num) > 1.5) ~ 1,
-                                         TRUE ~ 0),
-                               NA)) %>%
-  arrange(commence_time, player, play) %>%
+#props_df <- bind_rows(projections_df, book_props %>% left_join(projections_df %>% select(player, team), by = join_by(player), relationship = "many-to-many") ) %>%
+#  filter(!is.na(commence_time)) %>%
+#  pivot_wider(names_from = c(site, outcome), values_from = c(odds, point, prob), values_fn = mean) %>%
+#  select(-any_of(c("odds_ciely_NA", "odds_fp_NA", "odds_sharks_NA", "prob_ciely_NA", "prob_fp_NA", "prob_sharks_NA"))) %>%
+#  rename_with(function(x) gsub("_NA$", "", x)) %>%
+#  rowwise() %>%
+#  mutate(diff_ciely_dk = ifelse("point_ciely" %in% names(.), (point_ciely - point_dk_over)/point_dk_over, NA),
+#         diff_ciely_fd = ifelse("point_ciely" %in% names(.), (point_ciely - point_fd_over)/point_fd_over, NA),
+#         diff_fp_dk = ifelse("point_fp" %in% names(.), (point_fp - point_dk_over)/point_dk_over, NA),
+#         diff_fp_fd = ifelse("point_fp" %in% names(.), (point_fp - point_fd_over)/point_fd_over, NA),
+#         diff_sharks_dk = ifelse("point_sharks" %in% names(.), (point_sharks - point_dk_over)/point_dk_over, NA),
+#         diff_sharks_fd = ifelse("point_sharks" %in% names(.), (point_sharks - point_fd_over)/point_fd_over, NA),
+#         diff_ciely_dk_num = ifelse("point_ciely" %in% names(.), (point_ciely - point_dk_over), NA),
+#         diff_ciely_fd_num = ifelse("point_ciely" %in% names(.), (point_ciely - point_fd_over), NA),
+#         diff_fp_dk_num = ifelse("point_fp" %in% names(.), (point_fp - point_dk_over), NA),
+#         diff_fp_fd_num = ifelse("point_fp" %in% names(.), (point_fp - point_fd_over), NA),
+#         diff_sharks_dk_num = ifelse("point_sharks" %in% names(.), (point_sharks - point_dk_over), NA),
+#         diff_sharks_fd_num = ifelse("point_sharks" %in% names(.), (point_sharks - point_fd_over), NA),
+#         value_ciely = ifelse("point_ciely" %in% names(.), 
+#                                 case_when(play %in% c("payd") & (abs(diff_ciely_dk) > .15 | abs(diff_ciely_fd) > .15 ) & (abs(diff_ciely_dk_num) > 25 | abs(diff_ciely_fd_num) > 25) ~ 1,
+#                                           play %in% c("reyd", "ruyd") & (abs(diff_ciely_dk) > .25 | abs(diff_ciely_fd) > .25) & (abs(diff_ciely_dk_num) > 15 | abs(diff_ciely_fd_num) > 15) ~ 1,
+#                                           play %in% c("paco", "paat") & (abs(diff_ciely_dk) > .15 | abs(diff_ciely_fd) > .15) & (abs(diff_ciely_dk_num) > 3 | abs(diff_ciely_fd_num) > 3) ~ 1,
+#                                           play %in% c("rec", "ruat") & (abs(diff_ciely_dk) > .15 | abs(diff_ciely_fd) > .15) & (abs(diff_ciely_dk_num) > 1.5 | abs(diff_ciely_fd_num) > 1.5) ~ 1,
+#                                           TRUE ~ 0),
+#                              NA),
+#         value_fp = ifelse("point_fp" %in% names(.), 
+#                              case_when(play %in% c("payd") & (abs(diff_fp_dk) > .15 | abs(diff_fp_fd) > .15) & (abs(diff_fp_dk_num) > 20 | abs(diff_fp_fd_num) > 20) ~ 1,
+#                                        play %in% c("reyd", "ruyd") & (abs(diff_fp_dk) > .25 | abs(diff_fp_fd) > .25) & (abs(diff_fp_dk_num) > 15 | abs(diff_fp_fd_num) > 15) ~ 1,
+#                                        play %in% c("paco", "paat") & (abs(diff_fp_dk) > .15 | abs(diff_fp_fd) > .15) & (abs(diff_fp_dk_num) > 3 | abs(diff_fp_fd_num) > 3) ~ 1,
+#                                        play %in% c("rec", "ruat") & (abs(diff_fp_dk) > .15 | abs(diff_fp_fd) > .15) & (abs(diff_fp_dk_num) > 1.5 | abs(diff_fp_fd_num) > 1.5) ~ 1,
+#                                        TRUE ~ 0), 
+#                           NA),
+#         value_sharks = ifelse("point_sharks" %in% names(.), 
+#                              case_when(play %in% c("payd") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 25 | abs(diff_sharks_fd_num) > 25) ~ 1,
+#                                        play %in% c("reyd", "ruyd") & (abs(diff_sharks_dk) > .25 | abs(diff_sharks_fd) > .25) & (abs(diff_sharks_dk_num) > 15 | abs(diff_sharks_fd_num) > 15) ~ 1,
+#                                        play %in% c("paco", "paat") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 3 | abs(diff_sharks_fd_num) > 3) ~ 1,
+#                                        play %in% c("rec", "ruat") & (abs(diff_sharks_dk) > .15 | abs(diff_sharks_fd) > .15) & (abs(diff_sharks_dk_num) > 1.5 | abs(diff_sharks_fd_num) > 1.5) ~ 1,
+#                                        TRUE ~ 0), 
+#                              NA),
+#         value_nfl = ifelse("point_nfl" %in% names(.), 
+#                               case_when(play %in% c("payd") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 25 | abs(diff_nfl_fd_num) > 25) ~ 1,
+#                                         play %in% c("reyd", "ruyd") & (abs(diff_nfl_dk) > .25 | abs(diff_nfl_fd) > .25) & (abs(diff_nfl_dk_num) > 15 | abs(diff_nfl_fd_num) > 15) ~ 1,
+#                                         play %in% c("paco", "paat") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 3 | abs(diff_nfl_fd_num) > 3) ~ 1,
+#                                         play %in% c("rec", "ruat") & (abs(diff_nfl_dk) > .15 | abs(diff_nfl_fd) > .15) & (abs(diff_nfl_dk_num) > 1.5 | abs(diff_nfl_fd_num) > 1.5) ~ 1,
+#                                         TRUE ~ 0),
+#                               NA),
+#         value_guys = ifelse("point_guys" %in% names(.), 
+#                               case_when(play %in% c("payd") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 25 | abs(diff_guys_fd_num) > 25) ~ 1,
+#                                         play %in% c("reyd", "ruyd") & (abs(diff_guys_dk) > .25 | abs(diff_guys_fd) > .25) & (abs(diff_guys_dk_num) > 15 | abs(diff_guys_fd_num) > 15) ~ 1,
+#                                         play %in% c("paco", "paat") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 3 | abs(diff_guys_fd_num) > 3) ~ 1,
+#                                         play %in% c("rec", "ruat") & (abs(diff_guys_dk) > .15 | abs(diff_guys_fd) > .15) & (abs(diff_guys_dk_num) > 1.5 | abs(diff_guys_fd_num) > 1.5) ~ 1,
+#                                         TRUE ~ 0),
+#                               NA)) %>%
+#  arrange(commence_time, player, play) %>%
+#  left_join(., headshots, by = join_by("player" == "full_name"), relationship = "many-to-many") %>%
+#  left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = c("away_team" = "team_abbr")) %>%
+#  rename("away_logo" = "team_logo_espn") %>%
+#  left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = c("home_team" = "team_abbr")) %>%
+#  rename("home_logo" = "team_logo_espn") %>%
+#  mutate(play = factor(play, levels = c("paco", "paat", "payd", "patd", "paint", "ruat", "ruyd", "rec", "reyd", "to_score"),
+#                       labels = c("Pass Comp", "Pass Att", "Pass Yds", "Pass TDs", "Int", "Rush Att", "Rush Yds", "Rec", "Rec Yds", "Anytime TD"))) %>%
+#  left_join(., stats_trend, by = c("player" = "player", "play" = "play")) %>%
+#  mutate(trend  = ifelse(length(stats) == 0, NA, list(stats - ifelse(is.na(point_fd_over), point_dk_over, point_fd_over))))
+
+props_df2 <- left_join(
+  projections_df %>% distinct(), 
+  book_props %>% select(c(play, player, game_id, site, outcome, odds, point, prob)),
+  by = join_by(play, player, game_id), suffix = c("_proj", "_book"), relationship = "many-to-many") %>%
+  filter(!is.na(commence_time), !is.na(odds)) %>%
+  distinct() %>%
+  filter(play != "to_score") %>%
+  mutate(filter1 = case_when(point_proj > point_book & outcome == "over" ~ 1,
+                             point_proj < point_book & outcome == "under" ~ 1,
+                             TRUE ~ 0),
+         overs = ifelse(point_proj > point_book & outcome == "over", 1, 0),
+         unders = ifelse(point_proj < point_book & outcome == "under", 1, 0)) %>%
+ # filter(filter1 == 1) %>%
+  mutate(diff_number = abs(point_proj - point_book),
+         diff_percent = abs(point_proj - point_book) / point_book,
+         value_diff = case_when(point_book < 24 & grepl("yd", play) & diff_number > 10 ~ 1,
+                                point_book < 5 & grepl("td", play) & diff_number > .6 ~ 1,
+                                point_book < 5 & grepl("int", play) & diff_number > .6 ~ 1,
+                                grepl("yd", play) & point_book >= 24 & diff_percent > .3 ~ 1,
+                                TRUE ~ 0)) %>%
+  group_by(game_id, player, play) %>%
+  mutate(point_avg = mean(point_proj)) %>%
+  ungroup() %>%
+  mutate(value_avg_flag = case_when(point_avg > point_book & outcome == "over" ~ 1,
+                                    point_avg < point_book & outcome == "under" ~ 1,
+                                    TRUE ~ 0)) %>%
+  filter(value_avg_flag == 1) %>%
+  group_by(commence_time, week, game_time, game_id, away_team, home_team, team, player, play, outcome) %>%
+  summarize(projection = mean(point_proj),
+            overs_dk = sum(overs[site_book == "dk"]),
+            overs_fd = sum(overs[site_book == "fd"]),
+            unders_dk = sum(unders[site_book == "dk"]),
+            unders_fd = sum(unders[site_book == "fd"]),
+            odds_dk = mean(odds[site_book == "dk"]),
+            odds_fd = mean(odds[site_book == "fd"]),
+            line_dk = mean(point_book[site_book == "dk"]),
+            line_fd = mean(point_book[site_book == "fd"]),
+            sites = n_distinct(site_proj)) %>%
+  ungroup() %>%
+  mutate(avg_line = case_when(is.na(line_dk) ~ line_fd,
+                              is.na(line_fd) ~ line_dk,
+                              TRUE ~ (line_dk + line_fd) / 2),
+         avg_diff_number = abs(projection - avg_line),
+         avg_diff_percent = avg_diff_number / avg_line,
+         avg_value_diff = case_when(avg_line < 24 & grepl("yd", play) & avg_diff_number > 10 ~ 1,
+                                    avg_line < 5 & grepl("td", play) & avg_diff_number > .6 ~ 1,
+                                    avg_line < 5 & grepl("int", play) & avg_diff_number > .6 ~ 1,
+                                    grepl("yd", play) & avg_line >= 24 & avg_diff_percent > .25 ~ 1,
+                                    TRUE ~ 0)) %>%
+  filter(avg_value_diff == 1)
+
+props_gt <- props_df2 %>%
+  mutate(game_id = gsub("-", "vs", game_id),
+         agreement_dk = paste0(overs_dk + unders_dk, "/", sites),
+         agreement_fd = paste0(overs_fd + unders_fd, "/", sites)) %>%
+  arrange(commence_time) %>%
   left_join(., headshots, by = join_by("player" == "full_name"), relationship = "many-to-many") %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = c("away_team" = "team_abbr")) %>%
   rename("away_logo" = "team_logo_espn") %>%
   left_join(., teams_colors_logos %>% select(team_abbr, team_logo_espn), by = c("home_team" = "team_abbr")) %>%
   rename("home_logo" = "team_logo_espn") %>%
-  mutate(play = factor(play, levels = c("paco", "paat", "payd", "patd", "paint", "ruat", "ruyd", "rec", "reyd", "to_score"),
-                       labels = c("Pass Comp", "Pass Att", "Pass Yds", "Pass TDs", "Int", "Rush Att", "Rush Yds", "Rec", "Rec Yds", "Anytime TD"))) %>%
-  left_join(., stats_trend, by = c("player" = "player", "play" = "play")) %>%
-  mutate(trend  = ifelse(length(stats) == 0, NA, list(stats - ifelse(is.na(point_fd_over), point_dk_over, point_fd_over))))
-
-props_df2 <- bind_rows(
-  projections_df %>% distinct(), 
-  book_props %>% left_join(projections_df %>% select(player, team), by = join_by(player), relationship = "many-to-many") ) %>%
-  filter(!is.na(commence_time), !is.na(odds)) %>%
-  distinct()
+  select(-c(week, team, home_team, away_team, commence_time, overs_dk, overs_fd, avg_line, unders_dk, unders_fd, sites, avg_diff_number, avg_diff_percent, avg_value_diff)) %>%
+  mutate(play = case_when(play == "reyd" ~ "Rec Yds",
+                          play == "ruyd" ~ "Rush Yds",
+                          play == "payd" ~ "Pass Yds",
+                          play == "rec" ~ "Recep",
+                          play == "ruat" ~ "Rush Att",
+                          play == "paat" ~ "Pass Att",
+                          play == "paco" ~ "Pass Comp",
+                          play == "paint" ~ "Pass Int",
+                          play == "patd" ~ "Pass TDs",
+                          TRUE ~ NA),
+         odds_fd = ifelse(is.nan(odds_fd), NA, odds_fd),
+         line_fd = ifelse(is.nan(line_fd), NA, line_fd),
+         agreement_fd = ifelse(agreement_fd == 0, NA, agreement_fd)) %>%
+  select(c(game_time, away_logo, game_id, home_logo, headshot_url, player, play, outcome, projection, odds_dk, line_dk, agreement_dk, odds_fd, line_fd, agreement_fd)) %>%
+  group_by(game_time) %>%
+  gt() %>%
+  tab_spanner(label = "DraftKings",
+              columns = contains("_dk")) %>%
+  tab_spanner(label = "FanDuel",
+              columns = contains("_fd")) %>%
+  fmt_number(columns = c(projection, line_fd, line_dk),
+             decimals = 1) %>%
+  fmt_number(columns = contains("odds"),
+             force_sign = TRUE,
+             decimals = 0) %>%
+  sub_missing(missing_text = "-") %>%
+  cols_label(contains("odds") ~ "Odds",
+             contains("line_") ~ "Line",
+             contains("agreement") ~ "Support",
+             contains("logo") ~ "",
+             contains("headshot") ~ "",
+             contains("game_id") ~ "",
+             contains("player") ~ "") %>%
+  cols_width(game_id ~ px(100),
+             player ~ px(175)) %>%
+  cols_align(align = "center")  %>%
+  gt_img_rows(columns = away_logo) %>%
+  gt_img_rows(columns = home_logo) %>%
+  gt_img_rows(columns = headshot_url) %>%
+  tab_header(paste0(nfl_week, " Values")) %>%
+  tab_style(style = cell_text(weight = "bold"),
+            locations = cells_body(columns = c(play, outcome)))
+  
+  
+  
+  
+                                
 
       
-value_columns <- c("value_ciely", "value_fp", "value_sharks")
+#value_columns <- c("value_ciely", "value_fp", "value_sharks")
 
-props_values_gt <- try({props_df %>%
+#props_values_gt <- try({props_df %>%
   select(-contains("_num")) %>%
   mutate(game_id = gsub("-", "vs", game_id)) %>%
   filter(if_any(all_of(value_columns), ~.x == 1, na.rm = TRUE)) %>%
@@ -825,7 +929,7 @@ props_values_gt <- try({props_df %>%
                locations = cells_column_labels("nano"))
 }, silent = TRUE)
   
-props_all_gt <- try({props_df %>%
+#props_all_gt <- try({props_df %>%
   select(-contains("_num")) %>%
   mutate(game_id = gsub("-", "vs", game_id)) %>%
   filter(play != "Anytime TD") %>%
@@ -930,32 +1034,32 @@ props_all_gt <- try({props_df %>%
 
 # save projections --------------------------------------------------------
 
-    
+gtsave(props_gt, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth = 1400)    
     
 #save props values png
-ifelse(class(props_values_gt) != "try-error",
-       gtsave(props_values_gt, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth = 1400),
-       ggsave(filename = "NFL_Player_Prop_Values.png", 
-              plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "No Values", size = 20) + theme_void()))
+#ifelse(class(props_values_gt) != "try-error",
+#       gtsave(props_values_gt, expand = 100, filename = "NFL_Player_Prop_Values.png", vheight = 100, vwidth = 1400),
+#       ggsave(filename = "NFL_Player_Prop_Values.png", 
+#              plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "No Values", size = 20) + theme_void()))
 
 #save props values html
-ifelse(class(props_values_gt) != "try-error",
-       gtsave(props_values_gt,filename = "NFL_Player_Prop_Values.html", inline_css = TRUE),
-       NA)
+#ifelse(class(props_values_gt) != "try-error",
+#       gtsave(props_values_gt,filename = "NFL_Player_Prop_Values.html", inline_css = TRUE),
+#       NA)
 
-ifelse(class(props_all_gt) != "try-error",
-       gtsave(props_all_gt, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1400),
-       ggsave(filename = "NFL_Player_Props_All.png", 
-              plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "Error", size = 20) + theme_void()))
+#ifelse(class(props_all_gt) != "try-error",
+#       gtsave(props_all_gt, expand = 100, filename = "NFL_Player_Props_All.png", vheight = 100, vwidth =1400),
+#       ggsave(filename = "NFL_Player_Props_All.png", 
+#              plot = ggplot(data.frame()) + geom_text(aes(x = 0.5, y = 0.5), label = "Error", size = 20) + theme_void()))
 
-ifelse(class(props_all_gt) != "try-error",
-       gtsave(props_all_gt,filename = "NFL_Player_Props_All.html", inline_css = TRUE),
-       NA)
+#ifelse(class(props_all_gt) != "try-error",
+#       gtsave(props_all_gt,filename = "NFL_Player_Props_All.html", inline_css = TRUE),
+#       NA)
 
 
 #save projections
-current <- try({read_rds(file = paste0("NFL/predictions_props.rds"))}, silent = TRUE)
-new <-  props_df %>%
+current <- try({read_rds(file = paste0("NFL/predictions_props2.rds"))}, silent = TRUE)
+new <-  props_df2 %>%
   filter(!is.na(commence_time)) %>%
   #select(-c(type)) %>%
   #pivot_wider(names_from = c(site), values_from = c(away_prob, home_prob, away_spread, home_spread, away_points, home_points, total), values_fn = mean) %>%
@@ -964,7 +1068,7 @@ new <-  props_df %>%
 
 new2 <- ifelse(class(current) == "try-error", new, bind_rows(new, current))
 new2_name <- ifelse(class(current) == "try-error", 
-                    paste0("NFL/predictions_props_", nfl_week, ".rds"), 
+                    paste0("NFL/predictions_props2_", nfl_week, ".rds"), 
                     "NFL/predictions_props.rds")
 
 try({write_rds(new2, file = new2_name)}, silent = TRUE)
