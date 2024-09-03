@@ -358,64 +358,64 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
 
 #ciely_url <- "https://cdn.theathletic.com/app/uploads/2023/09/09111710/FFB_WK1_saturday.xlsx"
 
-ciely_url <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1kXGEcUzGbWkhYz5kHt1LubkgKmwDxoO6VLPWoadc5ZI", format = "csv"), stringsAsFactors = FALSE) %>% pull()
+#ciely_url <- read.csv(text = gsheet2text("https://docs.google.com/spreadsheets/d/1kXGEcUzGbWkhYz5kHt1LubkgKmwDxoO6VLPWoadc5ZI", format = "csv"), stringsAsFactors = FALSE) %>% pull()
 
-ciely_week <- str_match(ciely_url, "WK\\d+")[1, 1] %>% gsub("[^0-9]", "", .) %>% as.integer()
+#ciely_week <- str_match(ciely_url, "WK\\d+")[1, 1] %>% gsub("[^0-9]", "", .) %>% as.integer()
 
-ciely_qb <- read.xlsx(ciely_url, sheet = "QB") %>%
-  clean_names() %>%
-  select(-c(rk, fps)) %>%
-  rename("paint" = "int") %>%
-  mutate(payd = round(payd, 0),
-         patd = round(patd, 1),
-         paint = round(paint, 1),
-         ruat = round(ruat, 0),
-         ruyd = round(ruyd, 0),
-         rutd = round(rutd, 1))
+#ciely_qb <- read.xlsx(ciely_url, sheet = "QB") %>%
+##  clean_names() %>%
+#  select(-c(rk, fps)) %>%
+#  rename("paint" = "int") %>%
+#  mutate(payd = round(payd, 0),
+#         patd = round(patd, 1),
+#         paint = round(paint, 1),
+#         ruat = round(ruat, 0),
+#         ruyd = round(ruyd, 0),
+#         rutd = round(rutd, 1))
 
-ciely_rb <- read.xlsx(ciely_url, sheet = "RB") %>%
-  clean_names() %>%
-  select(-c(rk, fps)) %>%
-  rename("reyd" = "rcyd", "retd" = "rctd") %>%
-  mutate(ruat = round(ruat, 1),
-         ruyd = round(ruyd, 0),
-         rec = round(rec, 1),
-         reyd = round(reyd, 0))
+#ciely_rb <- read.xlsx(ciely_url, sheet = "RB") %>%
+#  clean_names() %>%
+#  select(-c(rk, fps)) %>%
+#  rename("reyd" = "rcyd", "retd" = "rctd") %>%
+#  mutate(ruat = round(ruat, 1),
+#         ruyd = round(ruyd, 0),
+#         rec = round(rec, 1),
+#         reyd = round(reyd, 0))
 
-ciely_wr <- read.xlsx(ciely_url, sheet = "WR") %>%
-  clean_names() %>%
-  select(-c(rk, fps)) %>%
-  rename("reyd" = "rcyd", "retd" = "rctd") %>%
-  mutate(retd = round(retd, 1),
-         ruyd = round(ruyd, 0),
-         rec = round(rec, 1),
-         reyd = round(reyd, 0)) %>%
-  select(-c(ruyd, rutd))
+#ciely_wr <- read.xlsx(ciely_url, sheet = "WR") %>%
+#  clean_names() %>%
+#  select(-c(rk, fps)) %>%
+#  rename("reyd" = "rcyd", "retd" = "rctd") %>%
+#  mutate(retd = round(retd, 1),
+#         ruyd = round(ruyd, 0),
+#         rec = round(rec, 1),
+#         reyd = round(reyd, 0)) %>%
+#  select(-c(ruyd, rutd))
 
-ciely_te <- read.xlsx(ciely_url, sheet = "TE") %>%
-  clean_names() %>%
-  select(-c(rk, fps)) %>%
-  rename("reyd" = "rcyd", "retd" = "rctd") %>%
-  mutate(retd = round(retd, 1),
-         rec = round(rec, 1),
-         reyd = round(reyd, 0))
+#ciely_te <- read.xlsx(ciely_url, sheet = "TE") %>%
+#  clean_names() %>%
+#  select(-c(rk, fps)) %>%
+#  rename("reyd" = "rcyd", "retd" = "rctd") %>%
+#  mutate(retd = round(retd, 1),
+#         rec = round(rec, 1),
+#         reyd = round(reyd, 0))#
 
-ciely_props <- bind_rows(ciely_qb, ciely_rb, ciely_wr, ciely_te) %>%
-  pivot_longer(cols = c(payd, paint, ruat, ruyd, rutd, rec, reyd, retd, patd), names_to = "play", values_to = "point") %>%
-  filter(!is.na(point)) %>%
-  pivot_wider(names_from = play, values_from = point) %>%
-  mutate(to_score = ifelse(is.na(rutd), 0, rutd) + ifelse(is.na(retd), 0, retd)) %>%
-  select(-c(rutd, retd)) %>%
-  pivot_longer(cols = c(payd, paint, ruat, ruyd, patd, rec, reyd, to_score), names_to = "play", values_to = "point") %>%
-  rename("team" = "tm") %>%
-  mutate(site = "ciely",
-         type = "projection",
-         week = ciely_week) %>%
-  filter(week == nfl_week_int) %>%
-  select(-week) %>%
-  mutate(team = case_when(team == "JAC" ~ "JAX",
-                          team == "WAS" ~ "WSH",
-                          TRUE ~ team))
+#ciely_props <- bind_rows(ciely_qb, ciely_rb, ciely_wr, ciely_te) %>%
+#  pivot_longer(cols = c(payd, paint, ruat, ruyd, rutd, rec, reyd, retd, patd), names_to = "play", values_to = "point") %>%
+#  filter(!is.na(point)) %>%
+#  pivot_wider(names_from = play, values_from = point) %>%
+#  mutate(to_score = ifelse(is.na(rutd), 0, rutd) + ifelse(is.na(retd), 0, retd)) %>%
+#  select(-c(rutd, retd)) %>%
+#  pivot_longer(cols = c(payd, paint, ruat, ruyd, patd, rec, reyd, to_score), names_to = "play", values_to = "point") %>%
+#  rename("team" = "tm") %>%
+#  mutate(site = "ciely",
+##         type = "projection",
+#         week = ciely_week) %>%
+#  filter(week == nfl_week_int) %>%
+#  select(-week) %>%
+#  mutate(team = case_when(team == "JAC" ~ "JAX",
+#                          team == "WAS" ~ "WSH",
+#                          TRUE ~ team))#
 
 
 # fantasy sharks projections ------------------------------------------------
