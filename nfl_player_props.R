@@ -787,7 +787,7 @@ props_gt <- props_df2 %>%
                           TRUE ~ NA),
          odds_fd = ifelse(is.nan(odds_fd), NA, odds_fd),
          line_fd = ifelse(is.nan(line_fd), NA, line_fd),
-         agreement_fd = ifelse(agreement_fd == 0, NA, agreement_fd)) %>%
+         agreement_fd = ifelse(is.na(line_fd), NA, agreement_fd)) %>%
   select(c(game_time, away_logo, game_id, home_logo, headshot_url, player, play, outcome, projection, odds_dk, line_dk, agreement_dk, odds_fd, line_fd, agreement_fd)) %>%
   group_by(game_time) %>%
   gt() %>%
@@ -827,210 +827,210 @@ props_gt <- props_df2 %>%
 #value_columns <- c("value_ciely", "value_fp", "value_sharks")
 
 #props_values_gt <- try({props_df %>%
-  select(-contains("_num")) %>%
-  mutate(game_id = gsub("-", "vs", game_id)) %>%
-  filter(if_any(all_of(value_columns), ~.x == 1, na.rm = TRUE)) %>%
-  group_by(game_id, game_time) %>%
-  select(c(away_logo, home_logo, headshot_url, player, everything())) %>%
-  select(-c(commence_time, week, away_team, home_team, team, point_dk_under, point_fd_under, starts_with("prob_dk"), starts_with("prob_fd"), stats)) %>%
-  select(-any_of(c("value_ciely", "value_sharks", "value_fp"))) %>%
-  mutate(line_dk_gt = paste0(point_dk_over, "<br>", "<span style='font-size: 12px;'>", odds_dk_over, "/", odds_dk_under, "</span>"),
-         line_fd_gt = paste0(point_fd_over, "<br>", "<span style='font-size: 12px;'>", odds_fd_over, "/", odds_fd_under, "</span>")) %>%
-  gt() %>%
-  cols_nanoplot(trend, plot_type = "bar", new_col_name = "nano", new_col_label = "Trend", missing_vals = "gap",
-                options = nanoplot_options(data_bar_fill_color = "#68d75a")) %>%
-  fmt_markdown(columns = c(line_dk_gt, line_fd_gt)) %>%
-  gt_img_rows(columns = away_logo) %>%
-  gt_img_rows(columns = home_logo) %>%
-  gt_img_rows(columns = headshot_url) %>%
-  fmt_number(columns = starts_with("odds_"),
-             decimals = 0, force_sign = TRUE) %>%
-  fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
-             rows = play == "Rec Yds" | play == "Pass Yds" | play == "Rush Yds",
-             decimals = 0) %>%
-  fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
-             rows = play == "Rush Att" | play == "Rec" | play == "Pass TDs" | play == "Int" | play == "Pass Att" | play == "Pass Comp",
-             decimals = 1) %>%
-  fmt_percent(columns = contains("diff"),
-              decimals = 0, force_sign = TRUE) %>%
- # fmt_number(columns = contains("diff"),
-#             rows = play == "Rec Yds" | play == "Pass Yds" | play == "Rush Yds",
+#  select(-contains("_num")) %>%
+#  mutate(game_id = gsub("-", "vs", game_id)) %>%
+#  filter(if_any(all_of(value_columns), ~.x == 1, na.rm = TRUE)) %>%
+#  group_by(game_id, game_time) %>%
+#  select(c(away_logo, home_logo, headshot_url, player, everything())) %>%
+#  select(-c(commence_time, week, away_team, home_team, team, point_dk_under, point_fd_under, starts_with("prob_dk"), starts_with("prob_fd"), stats)) %>%
+#  select(-any_of(c("value_ciely", "value_sharks", "value_fp"))) %>%
+#  mutate(line_dk_gt = paste0(point_dk_over, "<br>", "<span style='font-size: 12px;'>", odds_dk_over, "/", odds_dk_under, "</span>"),
+#         line_fd_gt = paste0(point_fd_over, "<br>", "<span style='font-size: 12px;'>", odds_fd_over, "/", odds_fd_under, "</span>")) %>%
+#  gt() %>%
+#  cols_nanoplot(trend, plot_type = "bar", new_col_name = "nano", new_col_label = "Trend", missing_vals = "gap",
+#                options = nanoplot_options(data_bar_fill_color = "#68d75a")) %>%
+#  fmt_markdown(columns = c(line_dk_gt, line_fd_gt)) %>%
+#  gt_img_rows(columns = away_logo) %>%
+#  gt_img_rows(columns = home_logo) %>%
+#  gt_img_rows(columns = headshot_url) %>%
+#  fmt_number(columns = starts_with("odds_"),
 #             decimals = 0, force_sign = TRUE) %>%
-#  fmt_number(columns = contains("diff"),
+#  fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
+#             rows = play == "Rec Yds" | play == "Pass Yds" | play == "Rush Yds",
+#             decimals = 0) %>%
+#  fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
+#             rows = play == "Rush Att" | play == "Rec" | play == "Pass TDs" | play == "Int" | play == "Pass Att" | play == "Pass Comp",
+#             decimals = 1) %>%
+#  fmt_percent(columns = contains("diff"),
+#              decimals = 0, force_sign = TRUE) %>%
+# # fmt_number(columns = contains("diff"),
+##             rows = play == "Rec Yds" | play == "Pass Yds" | play == "Rush Yds",
+##             decimals = 0, force_sign = TRUE) %>%
+##  fmt_number(columns = contains("diff"),
 #             rows = play == "Rush Att" | play == "Rec" | play == "Pass TDs" | play == "Int" | play == "Pass Att" | play == "Pass Comp",
 #             decimals = 1, force_sign = TRUE) %>%
-  tab_spanner(label = "DraftKings",
-              id = "dk",
-              columns = c(point_dk_over, odds_dk_over, odds_dk_under, line_dk_gt)) %>%
-  cols_merge(columns = c(odds_dk_over, odds_dk_under),
-             pattern = "{1}/{2}") %>%
-  tab_spanner(label = "FanDuel",
-              id = "fd",
-              columns = c(point_fd_over, odds_fd_over, odds_fd_under, line_fd_gt)) %>%
-  cols_merge(columns = c(odds_fd_over, odds_fd_under),
-             pattern = "{1}/{2}") %>%
-  tab_spanner(label = "Books", id = "books", spanners = c("dk", "fd")) %>%
-  tab_spanner(label = "Ciely",
-              id = "ciely",
-              columns = contains("ciely")) %>%
-  tab_spanner(label = "FantasyPros",
-              id = "fp",
-              columns = contains("fp")) %>%
-  tab_spanner(label = "FantasySharks",
-              id = "sharks",
-              columns = contains("sharks")) %>%
-  tab_spanner(label = "Projections", id = "projections", spanners = c("ciely", "fp", "sharks")) %>%
-  cols_hide(columns = c(trend, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under)) %>%
-  cols_move_to_end(columns = c(contains("ciely"), contains("fp"), contains("sharks"), contains("nano"))) %>%
-  cols_label(contains("logo") ~ "",
-             contains("url") ~ "",
-             contains("point_") ~ "Proj.",
-             contains("point_dk") ~ "Line",
-             contains("point_fd") ~ "Line",
-             contains("odds") ~ "Odds",
-             contains("diff_ciely_dk") ~ "DK Δ",
-             contains("diff_ciely_fd") ~ "FD Δ",
-             contains("diff_fp_dk") ~ "DK Δ",
-             contains("diff_fp_fd") ~ "FD Δ",
-             contains("diff_sharks_dk") ~ "DK Δ",
-             contains("diff_sharks_fd") ~ "FD Δ",
-             contains("line") ~ "Line",
-             "player" = "") %>%
-  cols_align(align = "center", columns = -c(player, play)) %>%
-  cols_align(align = "left", columns = c(player, play)) %>%
-  tab_style(style = cell_borders(sides = "right", weight = px(3)),
-            locations = list(cells_body(columns = line_dk_gt),
-                             cells_column_labels(columns = line_dk_gt))) %>%
-  tab_style(style = cell_borders(sides = "right", weight = px(1)),
-            locations = list(cells_body(columns = line_dk_gt),
-                             cells_column_labels(columns = line_dk_gt))) %>%
-  tab_style(style = cell_borders(sides = "right", weight = px(1)),
-            locations = list(cells_body(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))),
-                             cells_column_labels(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))))) %>%
-  cols_width(contains(c("diff", "point_ciely", "point_sharks", "point_fp")) ~ px(50)) %>%
-  data_color(columns = contains("diff"),
-             rows = play == "Rush Att" | play == "Rec" | play == "Pass Att" | play == "Pass Comp" | play == "Pass Yds" | play == "Rec Yds" | play == "Rush Yds",
-             palette = c("green", "lightgreen", "white", "lightgreen", "green"),
-             bins = c(-100, -.4, -.2, .2, .4, 100),
-             method = "bin",
-             #domain = c(-7, 7),
-             na_color = "white") %>%
-  tab_header(paste0(nfl_week, " Values")) %>%
-  tab_style(style = cell_text(weight = "bold"),
-            locations = cells_row_groups()) %>%
-  sub_missing(missing_text = "") %>%
-  tab_style(style = cell_text(size = px(10)),
-            locations = cells_body(columns = contains("odds"))) %>%
-  cols_merge(columns = c(point_dk_over, odds_dk_over),
-             pattern = "{1}<br>{2}") %>%
-  cols_merge(columns = c(point_fd_over, odds_fd_over),
-               pattern = "{1}<br>{2}") %>%
-  tab_footnote(footnote = "Based on expected stats.",
-               locations = cells_column_labels("nano"))
-}, silent = TRUE)
+#  tab_spanner(label = "DraftKings",
+#              id = "dk",
+#              columns = c(point_dk_over, odds_dk_over, odds_dk_under, line_dk_gt)) %>%
+#  cols_merge(columns = c(odds_dk_over, odds_dk_under),
+#             pattern = "{1}/{2}") %>%
+#  tab_spanner(label = "FanDuel",
+#              id = "fd",
+#              columns = c(point_fd_over, odds_fd_over, odds_fd_under, line_fd_gt)) %>%
+#  cols_merge(columns = c(odds_fd_over, odds_fd_under),
+#             pattern = "{1}/{2}") %>%
+#  tab_spanner(label = "Books", id = "books", spanners = c("dk", "fd")) %>%
+#  tab_spanner(label = "Ciely",
+#              id = "ciely",
+#              columns = contains("ciely")) %>%
+#  tab_spanner(label = "FantasyPros",
+#              id = "fp",
+#              columns = contains("fp")) %>%
+#  tab_spanner(label = "FantasySharks",
+#              id = "sharks",
+#              columns = contains("sharks")) %>%
+#  tab_spanner(label = "Projections", id = "projections", spanners = c("ciely", "fp", "sharks")) %>%
+#  cols_hide(columns = c(trend, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under)) %>%
+#  cols_move_to_end(columns = c(contains("ciely"), contains("fp"), contains("sharks"), contains("nano"))) %>%
+#  cols_label(contains("logo") ~ "",
+#             contains("url") ~ "",
+#             contains("point_") ~ "Proj.",
+#             contains("point_dk") ~ "Line",
+#             contains("point_fd") ~ "Line",
+#             contains("odds") ~ "Odds",
+#             contains("diff_ciely_dk") ~ "DK Δ",
+#             contains("diff_ciely_fd") ~ "FD Δ",
+#             contains("diff_fp_dk") ~ "DK Δ",
+#             contains("diff_fp_fd") ~ "FD Δ",
+#             contains("diff_sharks_dk") ~ "DK Δ",
+#             contains("diff_sharks_fd") ~ "FD Δ",
+#             contains("line") ~ "Line",
+#             "player" = "") %>%
+#  cols_align(align = "center", columns = -c(player, play)) %>%
+#  cols_align(align = "left", columns = c(player, play)) %>%
+#  tab_style(style = cell_borders(sides = "right", weight = px(3)),
+#            locations = list(cells_body(columns = line_dk_gt),
+#                             cells_column_labels(columns = line_dk_gt))) %>%
+#  tab_style(style = cell_borders(sides = "right", weight = px(1)),
+#            locations = list(cells_body(columns = line_dk_gt),
+#                             cells_column_labels(columns = line_dk_gt))) %>%
+#  tab_style(style = cell_borders(sides = "right", weight = px(1)),
+#            locations = list(cells_body(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))),
+#                             cells_column_labels(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))))) %>%
+#  cols_width(contains(c("diff", "point_ciely", "point_sharks", "point_fp")) ~ px(50)) %>%
+#  data_color(columns = contains("diff"),
+#             rows = play == "Rush Att" | play == "Rec" | play == "Pass Att" | play == "Pass Comp" | play == "Pass Yds" | play == "Rec Yds" | play == "Rush Yds",
+#             palette = c("green", "lightgreen", "white", "lightgreen", "green"),
+#             bins = c(-100, -.4, -.2, .2, .4, 100),
+#             method = "bin",
+#             #domain = c(-7, 7),
+#             na_color = "white") %>%
+#  tab_header(paste0(nfl_week, " Values")) %>%
+#  tab_style(style = cell_text(weight = "bold"),
+#            locations = cells_row_groups()) %>%
+#  sub_missing(missing_text = "") %>%
+#  tab_style(style = cell_text(size = px(10)),
+#            locations = cells_body(columns = contains("odds"))) %>%
+#  cols_merge(columns = c(point_dk_over, odds_dk_over),
+#             pattern = "{1}<br>{2}") %>%
+#  cols_merge(columns = c(point_fd_over, odds_fd_over),
+#               pattern = "{1}<br>{2}") %>%
+#  tab_footnote(footnote = "Based on expected stats.",
+#               locations = cells_column_labels("nano"))
+#}, silent = TRUE)
   
 #props_all_gt <- try({props_df %>%
-  select(-contains("_num")) %>%
-  mutate(game_id = gsub("-", "vs", game_id)) %>%
-  filter(play != "Anytime TD") %>%
-    group_by(game_id, game_time) %>%
-    select(c(away_logo, home_logo, headshot_url, player, everything())) %>%
-    select(-c(commence_time, week, away_team, home_team, team, point_dk_under, point_fd_under, starts_with("prob_dk"), starts_with("prob_fd"), stats)) %>%
-    select(-any_of(c("value_ciely", "value_sharks", "value_fp"))) %>%
-    mutate(line_dk_gt = paste0(point_dk_over, "<br>", "<span style='font-size: 12px;'>", odds_dk_over, "/", odds_dk_under, "</span>"),
-           line_fd_gt = paste0(point_fd_over, "<br>", "<span style='font-size: 12px;'>", odds_fd_over, "/", odds_fd_under, "</span>")) %>%
-    gt() %>%
-    cols_nanoplot(trend, plot_type = "bar", new_col_name = "nano", new_col_label = "Trend", missing_vals = "gap",
-                  options = nanoplot_options(data_bar_fill_color = "#68d75a")) %>%
-    fmt_markdown(columns = c(line_dk_gt, line_fd_gt)) %>%
-    gt_img_rows(columns = away_logo) %>%
-    gt_img_rows(columns = home_logo) %>%
-    gt_img_rows(columns = headshot_url) %>%
-    fmt_number(columns = starts_with("odds_"),
-               decimals = 0, force_sign = TRUE) %>%
-    fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
-               rows = play == "Rec Yds" | play == "Pass Yds" | play == "Rush Yds",
-               decimals = 0) %>%
-    fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
-               rows = play == "Rush Att" | play == "Rec" | play == "Pass TDs" | play == "Int" | play == "Pass Att" | play == "Pass Comp",
-               decimals = 1) %>%
-    fmt_percent(columns = contains("diff"),
-                decimals = 0, force_sign = TRUE) %>%
-    # fmt_number(columns = contains("diff"),
+#  select(-contains("_num")) %>%
+#  mutate(game_id = gsub("-", "vs", game_id)) %>%
+#  filter(play != "Anytime TD") %>%
+#    group_by(game_id, game_time) %>%
+#    select(c(away_logo, home_logo, headshot_url, player, everything())) %>%
+#    select(-c(commence_time, week, away_team, home_team, team, point_dk_under, point_fd_under, starts_with("prob_dk"), starts_with("prob_fd"), stats)) %>%
+#    select(-any_of(c("value_ciely", "value_sharks", "value_fp"))) %>%
+#    mutate(line_dk_gt = paste0(point_dk_over, "<br>", "<span style='font-size: 12px;'>", odds_dk_over, "/", odds_dk_under, "</span>"),
+#           line_fd_gt = paste0(point_fd_over, "<br>", "<span style='font-size: 12px;'>", odds_fd_over, "/", odds_fd_under, "</span>")) %>%
+#    gt() %>%
+#    cols_nanoplot(trend, plot_type = "bar", new_col_name = "nano", new_col_label = "Trend", missing_vals = "gap",
+#                  options = nanoplot_options(data_bar_fill_color = "#68d75a")) %>%
+#    fmt_markdown(columns = c(line_dk_gt, line_fd_gt)) %>%
+#    gt_img_rows(columns = away_logo) %>%
+#    gt_img_rows(columns = home_logo) %>%
+#    gt_img_rows(columns = headshot_url) %>%
+#    fmt_number(columns = starts_with("odds_"),
+#               decimals = 0, force_sign = TRUE) %>%
+#    fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
+##               rows = play == "Rec Yds" | play == "Pass Yds" | play == "Rush Yds",
+#               decimals = 0) %>%
+#    fmt_number(columns = contains(c("point_ciely", "point_fp", "point_sharks")),
+#               rows = play == "Rush Att" | play == "Rec" | play == "Pass TDs" | play == "Int" | play == "Pass Att" | play == "Pass Comp",
+#               decimals = 1) %>%
+#    fmt_percent(columns = contains("diff"),
+#                decimals = 0, force_sign = TRUE) %>%
+##    # fmt_number(columns = contains("diff"),
     #             rows = play == "Rec Yds" | play == "Pass Yds" | play == "Rush Yds",
     #             decimals = 0, force_sign = TRUE) %>%
     #  fmt_number(columns = contains("diff"),
     #             rows = play == "Rush Att" | play == "Rec" | play == "Pass TDs" | play == "Int" | play == "Pass Att" | play == "Pass Comp",
     #             decimals = 1, force_sign = TRUE) %>%
-    tab_spanner(label = "DraftKings",
-                id = "dk",
-                columns = c(point_dk_over, odds_dk_over, odds_dk_under, line_dk_gt)) %>%
-    cols_merge(columns = c(odds_dk_over, odds_dk_under),
-               pattern = "{1}/{2}") %>%
-    tab_spanner(label = "FanDuel",
-                id = "fd",
-                columns = c(point_fd_over, odds_fd_over, odds_fd_under, line_fd_gt)) %>%
-    cols_merge(columns = c(odds_fd_over, odds_fd_under),
-               pattern = "{1}/{2}") %>%
-    tab_spanner(label = "Books", id = "books", spanners = c("dk", "fd")) %>%
-    tab_spanner(label = "Ciely",
-                id = "ciely",
-                columns = contains("ciely")) %>%
-    tab_spanner(label = "FantasyPros",
-                id = "fp",
-                columns = contains("fp")) %>%
-    tab_spanner(label = "FantasySharks",
-                id = "sharks",
-                columns = contains("sharks")) %>%
-    tab_spanner(label = "Projections", id = "projections", spanners = c("ciely", "fp", "sharks")) %>%
-    cols_hide(columns = c(trend, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under)) %>%
-    cols_move_to_end(columns = c(contains("ciely"), contains("fp"), contains("sharks"), contains("nano"))) %>%
-    cols_label(contains("logo") ~ "",
-               contains("url") ~ "",
-               contains("point_") ~ "Proj.",
-               contains("point_dk") ~ "Line",
-               contains("point_fd") ~ "Line",
-               contains("odds") ~ "Odds",
-               contains("diff_ciely_dk") ~ "DK Δ",
-               contains("diff_ciely_fd") ~ "FD Δ",
-               contains("diff_fp_dk") ~ "DK Δ",
-               contains("diff_fp_fd") ~ "FD Δ",
-               contains("diff_sharks_dk") ~ "DK Δ",
-               contains("diff_sharks_fd") ~ "FD Δ",
-               contains("line") ~ "Line",
-               "player" = "") %>%
-    cols_align(align = "center", columns = -c(player, play)) %>%
-    cols_align(align = "left", columns = c(player, play)) %>%
-    tab_style(style = cell_borders(sides = "right", weight = px(3)),
-              locations = list(cells_body(columns = line_dk_gt),
-                               cells_column_labels(columns = line_dk_gt))) %>%
-    tab_style(style = cell_borders(sides = "right", weight = px(1)),
-              locations = list(cells_body(columns = line_dk_gt),
-                               cells_column_labels(columns = line_dk_gt))) %>%
-    tab_style(style = cell_borders(sides = "right", weight = px(1)),
-              locations = list(cells_body(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))),
-                               cells_column_labels(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))))) %>%
-    cols_width(contains(c("diff", "point_ciely", "point_sharks", "point_fp")) ~ px(50)) %>%
-    data_color(columns = contains("diff"),
-               rows = play == "Rush Att" | play == "Rec" | play == "Pass Att" | play == "Pass Comp" | play == "Pass Yds" | play == "Rec Yds" | play == "Rush Yds",
-               palette = c("green", "lightgreen", "white", "lightgreen", "green"),
-               bins = c(-100, -.4, -.2, .2, .4, 100),
-               method = "bin",
-               #domain = c(-7, 7),
-               na_color = "white") %>%
-    tab_header(paste0(nfl_week, " Projections")) %>%
-    tab_style(style = cell_text(weight = "bold"),
-              locations = cells_row_groups()) %>%
-    sub_missing(missing_text = "") %>%
-    tab_style(style = cell_text(size = px(10)),
-              locations = cells_body(columns = contains("odds"))) %>%
-    cols_merge(columns = c(point_dk_over, odds_dk_over),
-               pattern = "{1}<br>{2}") %>%
-    cols_merge(columns = c(point_fd_over, odds_fd_over),
-               pattern = "{1}<br>{2}") %>%
-    tab_footnote(footnote = "Based on expected stats.",
-                 locations = cells_column_labels("nano"))
-}, silent = TRUE)
+#    tab_spanner(label = "DraftKings",
+#                id = "dk",
+#                columns = c(point_dk_over, odds_dk_over, odds_dk_under, line_dk_gt)) %>%
+##    cols_merge(columns = c(odds_dk_over, odds_dk_under),
+#               pattern = "{1}/{2}") %>%
+#    tab_spanner(label = "FanDuel",
+#                id = "fd",
+#                columns = c(point_fd_over, odds_fd_over, odds_fd_under, line_fd_gt)) %>%
+###    cols_merge(columns = c(odds_fd_over, odds_fd_under),
+  #             pattern = "{1}/{2}") %>%
+#    tab_spanner(label = "Books", id = "books", spanners = c("dk", "fd")) %>%
+#    tab_spanner(label = "Ciely",
+#                id = "ciely",
+#                columns = contains("ciely")) %>%
+#    tab_spanner(label = "FantasyPros",
+#                id = "fp",
+#                columns = contains("fp")) %>%
+#    tab_spanner(label = "FantasySharks",
+#                id = "sharks",
+#                columns = contains("sharks")) %>%
+#    tab_spanner(label = "Projections", id = "projections", spanners = c("ciely", "fp", "sharks")) %>%
+#    cols_hide(columns = c(trend, point_dk_over, odds_dk_over, odds_dk_under, point_fd_over, odds_fd_over, odds_fd_under)) %>%
+#    cols_move_to_end(columns = c(contains("ciely"), contains("fp"), contains("sharks"), contains("nano"))) %>%
+#    cols_label(contains("logo") ~ "",
+#               contains("url") ~ "",
+#               contains("point_") ~ "Proj.",
+#               contains("point_dk") ~ "Line",
+#               contains("point_fd") ~ "Line",
+#               contains("odds") ~ "Odds",
+#               contains("diff_ciely_dk") ~ "DK Δ",
+#               contains("diff_ciely_fd") ~ "FD Δ",
+#               contains("diff_fp_dk") ~ "DK Δ",
+#               contains("diff_fp_fd") ~ "FD Δ",
+#               contains("diff_sharks_dk") ~ "DK Δ",
+#               contains("diff_sharks_fd") ~ "FD Δ",
+#               contains("line") ~ "Line",
+#               "player" = "") %>%
+#    cols_align(align = "center", columns = -c(player, play)) %>%
+#    cols_align(align = "left", columns = c(player, play)) %>%
+#    tab_style(style = cell_borders(sides = "right", weight = px(3)),
+#              locations = list(cells_body(columns = line_dk_gt),
+#                               cells_column_labels(columns = line_dk_gt))) %>%
+#    tab_style(style = cell_borders(sides = "right", weight = px(1)),
+#              locations = list(cells_body(columns = line_dk_gt),
+#                               cells_column_labels(columns = line_dk_gt))) %>%
+#    tab_style(style = cell_borders(sides = "right", weight = px(1)),
+#              locations = list(cells_body(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))),
+#                               cells_column_labels(columns = contains(c("diff_ciely_fd", "diff_fp_fd", "diff_shaks_fd"))))) %>%
+#    cols_width(contains(c("diff", "point_ciely", "point_sharks", "point_fp")) ~ px(50)) %>%
+#    data_color(columns = contains("diff"),
+#               rows = play == "Rush Att" | play == "Rec" | play == "Pass Att" | play == "Pass Comp" | play == "Pass Yds" | play == "Rec Yds" | play == "Rush Yds",
+#               palette = c("green", "lightgreen", "white", "lightgreen", "green"),
+#               bins = c(-100, -.4, -.2, .2, .4, 100),
+#               method = "bin",
+#               #domain = c(-7, 7),
+#               na_color = "white") %>%
+#    tab_header(paste0(nfl_week, " Projections")) %>%
+#    tab_style(style = cell_text(weight = "bold"),
+#              locations = cells_row_groups()) %>%
+#    sub_missing(missing_text = "") %>%
+#    tab_style(style = cell_text(size = px(10)),
+#              locations = cells_body(columns = contains("odds"))) %>%
+#    cols_merge(columns = c(point_dk_over, odds_dk_over),
+#               pattern = "{1}<br>{2}") %>%
+#    cols_merge(columns = c(point_fd_over, odds_fd_over),
+#               pattern = "{1}<br>{2}") %>%
+#    tab_footnote(footnote = "Based on expected stats.",
+#                 locations = cells_column_labels("nano"))
+#}, silent = TRUE)#
 
 # save projections --------------------------------------------------------
 
