@@ -1030,6 +1030,7 @@ props_gt <- props_df2 %>%
 #               pattern = "{1}<br>{2}") %>%
 #    tab_footnote(footnote = "Based on expected stats.",
 #                 locations = cells_column_labels("nano"))
+
 #}, silent = TRUE)#
 
 # save projections --------------------------------------------------------
