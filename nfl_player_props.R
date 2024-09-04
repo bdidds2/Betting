@@ -765,6 +765,8 @@ props_df2 <- left_join(
   mutate(diff_number = abs(point_proj - point_book),
          diff_percent = abs(point_proj - point_book) / point_book,
          value_diff = case_when(point_book < 24 & grepl("yd", play) & diff_number > 10 ~ 1,
+                                play == "paco" | play == "paat" & diff_number > 10 ~ 1,
+                                point_book < 24 & play == "rec" | play == "ruat" & diff_number > 1.4 ~ 1,
                                 point_book < 5 & grepl("td", play) & diff_number > .6 ~ 1,
                                 point_book < 5 & grepl("int", play) & diff_number > .6 ~ 1,
                                 grepl("yd", play) & point_book >= 24 & diff_percent > .3 ~ 1,
@@ -794,13 +796,15 @@ props_df2 <- left_join(
          avg_diff_number = abs(projection - avg_line),
          avg_diff_percent = avg_diff_number / avg_line,
          avg_value_diff = case_when(avg_line < 24 & grepl("yd", play) & avg_diff_number > 10 ~ 1,
+                                    (play == "paco" | play == "paat") & avg_diff_number > 10 ~ 1,
+                                    avg_line < 24 & (play == "rec" | play == "ruat") & avg_diff_number > 1.9 ~ 1,
                                     avg_line < 5 & grepl("td", play) & avg_diff_number > .6 ~ 1,
                                     avg_line < 5 & grepl("int", play) & avg_diff_number > .6 ~ 1,
                                     grepl("yd", play) & avg_line >= 24 & avg_diff_percent > .25 ~ 1,
-                                    TRUE ~ 0)) %>%
-  filter(avg_value_diff == 1)
+                                    TRUE ~ 0))
 
 props_gt <- props_df2 %>%
+  filter(avg_value_diff == 1) %>%
   mutate(game_id = gsub("-", "vs", game_id),
          agreement_dk = paste0(overs_dk + unders_dk, "/", sites),
          agreement_fd = paste0(overs_fd + unders_fd, "/", sites)) %>%
