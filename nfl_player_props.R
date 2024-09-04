@@ -84,7 +84,7 @@ headshots <- load_rosters(2024) %>%
 # api setup ---------------------------------------------------------------
 
 
-api <- "d72d888a7e2831439aa64a8ac1525f71"
+api <- "935bb399373baa6304a140c7a6cee4fc"
 base <- "https://api.the-odds-api.com"
 sport <- "americanfootball_nfl"
 markets <- "h2h"
@@ -138,7 +138,7 @@ nfl_week_int <- nfl_week %>% gsub("[^0-9]", "", .) %>% as.integer()
 all_game_df <- as.data.frame(unique(content_nfl_props %>% filter(week_filter == 1, commence_time >= Sys.Date()) %>% select(id)))
 tnf_game_df <- as.data.frame(unique(content_nfl_props %>% filter(week_filter == 1, commence_time >= Sys.Date(), weekdays(commence_time) == "Thursday") %>% select(id)))
 
-game_df1 <- ifelse(wday(Sys.Date(), week_start = 1) >= 4 | wday(Sys.Date(), week_start = 1) <= 1, all_game_df, tnf_game_df)
+game_df1 <- ifelse(wday(Sys.Date(), week_start = 1) >= 1 | wday(Sys.Date(), week_start = 1) <= 1, all_game_df, tnf_game_df)
 game_df <-  as.data.frame(unlist(game_df1)) %>% setNames("id")
 
 
