@@ -420,108 +420,156 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
 
 # fantasy sharks projections ------------------------------------------------
 
-shark_segment <- nfl_week_int + 818
+#shark_segment <- nfl_week_int + 818
 
 
-sharks_qb_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?&Sort=&Segment=", shark_segment, "&Position=1&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
-sharks_qb <- sharks_qb_raw %>%
-  clean_names() %>%
-  select(player, tm, att, comp, pass_yds, pass_t_ds, rush, rsh_yds, rsh_t_ds, int) %>%
-  rename("player" = "player", "paat" = "att", "paco" = "comp", "payd" = "pass_yds", "patd" = "pass_t_ds", "ruat" = "rush", "ruyd" = "rsh_yds", "to_score" = "rsh_t_ds", "paint" = "int") %>%
-  mutate(player_name = strsplit(player, ", "),
-         to_score = as.numeric(to_score),
-         paat = as.numeric(paat),
-         payd = as.numeric(payd),
-         paco = as.numeric(paco),
-         patd = as.numeric(patd),
-         paint = as.numeric(paint),
-         ruat = as.numeric(ruat),
-         ruyd = as.numeric(ruyd)) %>%
-  filter(!grepl("Tier", player),
-         !grepl("Points Award", player),
-         !grepl("Player", player)) %>% 
-  rowwise() %>%
-  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
-  select(-player_name) %>%
-  ungroup()
+#sharks_qb_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?&Sort=&Segment=", shark_segment, "&Position=1&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
+#sharks_qb <- sharks_qb_raw %>%
+#  clean_names() %>%
+#  select(player, tm, att, comp, pass_yds, pass_t_ds, rush, rsh_yds, rsh_t_ds, int) %>%
+#  rename("player" = "player", "paat" = "att", "paco" = "comp", "payd" = "pass_yds", "patd" = "pass_t_ds", "ruat" = "rush", "ruyd" = "rsh_yds", "to_score" = "rsh_t_ds", "paint" = "int") %>%
+#  mutate(player_name = strsplit(player, ", "),
+#         to_score = as.numeric(to_score),
+#         paat = as.numeric(paat),
+#         payd = as.numeric(payd),
+#         paco = as.numeric(paco),
+#         patd = as.numeric(patd),
+#         paint = as.numeric(paint),
+#         ruat = as.numeric(ruat),
+#         ruyd = as.numeric(ruyd)) %>%
+#  filter(!grepl("Tier", player),
+#         !grepl("Points Award", player),
+#         !grepl("Player", player)) %>% 
+#  rowwise() %>%
+#  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
+#  select(-player_name) %>%
+#  ungroup()
 
-sharks_rb_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?Sort=&Segment=", shark_segment, "&Position=2&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
-sharks_rb <- sharks_rb_raw %>%
-  clean_names() %>%
-  select(player, tm, rush, rsh_yds, rsh_t_ds, rec, rec_yds, rec_t_ds) %>%
-  mutate(to_score = as.numeric(rsh_t_ds) + as.numeric(rec_t_ds),
-         ruat = as.numeric(rush),
-         ruyd = as.numeric(rsh_yds),
-         rec = as.numeric(rec),
-         reyd = as.numeric(rec_yds)) %>%
-  select(-c(rush, rsh_yds, rec_yds)) %>%
-  filter(!grepl("Tier", player),
-         !grepl("Points Award", player),
-         !grepl("Player", player)) %>%
-  select(-c(rsh_t_ds, rec_t_ds)) %>%
+#sharks_rb_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?Sort=&Segment=", shark_segment, "&Position=2&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
+#sharks_rb <- sharks_rb_raw %>%
+#  clean_names() %>%
+#  select(player, tm, rush, rsh_yds, rsh_t_ds, rec, rec_yds, rec_t_ds) %>%
+#  mutate(to_score = as.numeric(rsh_t_ds) + as.numeric(rec_t_ds),
+#         ruat = as.numeric(rush),
+#         ruyd = as.numeric(rsh_yds),
+#         rec = as.numeric(rec),
+#         reyd = as.numeric(rec_yds)) %>%
+#  select(-c(rush, rsh_yds, rec_yds)) %>%
+#  filter(!grepl("Tier", player),
+#         !grepl("Points Award", player),
+#         !grepl("Player", player)) %>%
+#  select(-c(rsh_t_ds, rec_t_ds)) %>%
 #  rename("ruat" = "rush", "ruyd" = "rsh_yds", "reyd" = "rec_yds") %>%
-  mutate(player_name = strsplit(player, ", ")) %>%
-  rowwise() %>%
-  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
-  select(-player_name) %>%
-  ungroup()
+#  mutate(player_name = strsplit(player, ", ")) %>%
+#  rowwise() %>%
+#  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
+#  select(-player_name) %>%
+#  ungroup()
 
-sharks_wr_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?Sort=&Segment=", shark_segment, "&Position=4&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
-sharks_wr <- sharks_wr_raw %>%
+#sharks_wr_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?Sort=&Segment=", shark_segment, "&Position=4&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
+#sharks_wr <- sharks_wr_raw %>%
+#  clean_names() %>%
+#  select(c(player, tm, rec, rec_yds, rec_t_ds, rsh_yds, rsh_t_ds)) %>%
+#  mutate(to_score = as.numeric(rsh_t_ds) + as.numeric(rec_t_ds),
+#         ruyd = as.numeric(rsh_yds),
+#         rec = as.numeric(rec),
+#         reyd = as.numeric(rec_yds)) %>%
+#  select(-c(rsh_yds, rec_yds)) %>%
+#  select(-c(rsh_t_ds, rec_t_ds)) %>%
+#  filter(!grepl("Tier", player),
+#         !grepl("Points Award", player),
+#         !grepl("Player", player)) %>%
+#  mutate(player_name = strsplit(player, ", ")) %>%
+#  rowwise() %>%
+#  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
+#  select(-player_name) %>%
+#  ungroup()#
+
+#sharks_te_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?Sort=&Segment=", shark_segment, "&Position=5&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
+#sharks_te <- sharks_te_raw %>%
+#  clean_names() %>%
+#  select(player, tm, rec, rec_yds, rec_t_ds, rsh_yds, rsh_t_ds) %>%
+#  mutate(to_score = as.numeric(rsh_t_ds) + as.numeric(rec_t_ds),
+##         ruyd = as.numeric(rsh_yds),
+#         rec = as.numeric(rec),
+#         reyd = as.numeric(rec_yds)) %>%
+#  select(-c(rsh_yds, rec_yds)) %>%
+#  select(-c(rsh_t_ds, rec_t_ds)) %>%
+#  filter(!grepl("Tier", player),
+#         !grepl("Points Award", player),
+#         !grepl("Player", player)) %>%
+#  mutate(player_name = strsplit(player, ", ")) %>%
+#  rowwise() %>%
+#  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
+#  select(-player_name) %>%
+#  ungroup()
+
+#sharks_props <- bind_rows(sharks_qb, sharks_rb, sharks_wr, sharks_te) %>%
+#  pivot_longer(cols = c(payd, paat, paco, paint, ruat, ruyd, rec, reyd, patd, to_score), names_to = "play", values_to = "point") %>%
+#  filter(!is.na(point)) %>%
+#  pivot_wider(names_from = play, values_from = point) %>%
+#  pivot_longer(cols = c(payd, paat, paco, paint, ruat, ruyd, patd, rec, reyd, to_score), names_to = "play", values_to = "point") %>%
+#  mutate(team = case_when(tm == "KCC" ~ "KC",
+#                          tm == "TBB" ~ "TB",
+#                          tm == "GBP" ~ "GB",
+#                          tm == "LVR" ~ "LV",
+#                          tm == "JAC" ~ "JAX",
+#                          tm == "NEP" ~ "NE",
+##                          tm == "NOS" ~ "NO",
+#                          tm == "SFO" ~ "SF",
+#                          tm == "WAS" ~ "WSH",
+#                          TRUE ~ tm)) %>%
+#  select(-tm) %>%
+#  mutate(site = "sharks",
+#         type = "projection")
+
+# lineup experts ----------------------------------------------------------
+
+le_qb_url <- "https://www.lineupexperts.com/football/projections?flt_proj_time_period=CurrentWeek&flt_pos=QB"
+le_rb_url <- "https://www.lineupexperts.com/football/projections?flt_proj_time_period=CurrentWeek&flt_pos=RB"
+le_wr_url <- "https://www.lineupexperts.com/football/projections?flt_proj_time_period=CurrentWeek&flt_pos=WR"
+le_te_url <- "https://www.lineupexperts.com/football/projections?flt_proj_time_period=CurrentWeek&flt_pos=TE"
+
+
+le_raw <- bind_rows(
+  read_html(le_qb_url) %>% html_table() %>% as.data.frame(),
+  read_html(le_rb_url) %>% html_table() %>% as.data.frame(),
+  read_html(le_wr_url) %>% html_table() %>% as.data.frame(),
+  read_html(le_te_url) %>% html_table() %>% as.data.frame())
+
+lineupexperts <- le_raw %>%
   clean_names() %>%
-  select(c(player, tm, rec, rec_yds, rec_t_ds, rsh_yds, rsh_t_ds)) %>%
-  mutate(to_score = as.numeric(rsh_t_ds) + as.numeric(rec_t_ds),
-         ruyd = as.numeric(rsh_yds),
-         rec = as.numeric(rec),
-         reyd = as.numeric(rec_yds)) %>%
-  select(-c(rsh_yds, rec_yds)) %>%
-  select(-c(rsh_t_ds, rec_t_ds)) %>%
-  filter(!grepl("Tier", player),
-         !grepl("Points Award", player),
-         !grepl("Player", player)) %>%
-  mutate(player_name = strsplit(player, ", ")) %>%
-  rowwise() %>%
-  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
-  select(-player_name) %>%
-  ungroup()
-
-sharks_te_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?Sort=&Segment=", shark_segment, "&Position=5&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
-sharks_te <- sharks_te_raw %>%
-  clean_names() %>%
-  select(player, tm, rec, rec_yds, rec_t_ds, rsh_yds, rsh_t_ds) %>%
-  mutate(to_score = as.numeric(rsh_t_ds) + as.numeric(rec_t_ds),
-         ruyd = as.numeric(rsh_yds),
-         rec = as.numeric(rec),
-         reyd = as.numeric(rec_yds)) %>%
-  select(-c(rsh_yds, rec_yds)) %>%
-  select(-c(rsh_t_ds, rec_t_ds)) %>%
-  filter(!grepl("Tier", player),
-         !grepl("Points Award", player),
-         !grepl("Player", player)) %>%
-  mutate(player_name = strsplit(player, ", ")) %>%
-  rowwise() %>%
-  mutate(player = paste0(player_name[[2]], " ", player_name[[1]])) %>%
-  select(-player_name) %>%
-  ungroup()
-
-sharks_props <- bind_rows(sharks_qb, sharks_rb, sharks_wr, sharks_te) %>%
-  pivot_longer(cols = c(payd, paat, paco, paint, ruat, ruyd, rec, reyd, patd, to_score), names_to = "play", values_to = "point") %>%
-  filter(!is.na(point)) %>%
-  pivot_wider(names_from = play, values_from = point) %>%
-  pivot_longer(cols = c(payd, paat, paco, paint, ruat, ruyd, patd, rec, reyd, to_score), names_to = "play", values_to = "point") %>%
-  mutate(team = case_when(tm == "KCC" ~ "KC",
-                          tm == "TBB" ~ "TB",
-                          tm == "GBP" ~ "GB",
-                          tm == "LVR" ~ "LV",
-                          tm == "JAC" ~ "JAX",
-                          tm == "NEP" ~ "NE",
-                          tm == "NOS" ~ "NO",
-                          tm == "SFO" ~ "SF",
-                          tm == "WAS" ~ "WSH",
-                          TRUE ~ tm)) %>%
-  select(-tm) %>%
-  mutate(site = "sharks",
+  mutate(parts = map(player, ~ str_split(.x, "\\.")[[1]]),  # Split the string by periods
+         player1a = map_chr(parts, ~ {
+           if (length(.x) == 1) {
+             str_extract(player[which(parts == .x)], "(?<=\\.)[^.]+")  # Extract after the last period if only one part
+           } else {
+             .x[length(.x) - 1]  # Extract after the second-to-last period if more than one part
+           }
+         }),
+         player1a2 = str_sub(player1a, start = 1, end = nchar(player1a) -1),
+         player_help =  str_locate(player, player1a)[,2],
+         length2 = nchar(player1a),
+         player2 = str_sub(player, start = 1, end = player_help - nchar(player1a)),
+         player1 = ifelse(is.na(player2), player1a2, paste0(player2, player1a2)),
+         team = trimws(str_extract(player, "(?<=\\()[^-]*(?=\\-)"))) %>%
+  rename("paat" = "p_att",
+         "paco" = "comp",
+         "payd" = "p_yard",
+         "patd" = "ptd",
+         "paint" = "int",
+         "ruat" = "att",
+         "ruyd" = "ru_yard",
+         "reyd" = "re_yard") %>%
+  mutate(to_score = as.numeric(re_td) + as.numeric(ru_td)) %>%
+  select(c(player1, team, paco, paat, payd, patd, paint, ruyd, ruat, rec, reyd, to_score)) %>%
+  rename("player" = "player1") %>%
+  pivot_longer(cols = c(paco, paat, payd, patd, paint, ruyd, ruat, rec, reyd, to_score),
+               values_to = "point",
+               names_to = "play") %>%
+  mutate(site = "lineupexperts",
          type = "projection")
+
 
 # nfl fantasy -------------------------------------------------------------
 
@@ -681,7 +729,7 @@ stats_trend <- bind_rows(stats_passing, stats_rushing, stats_receiving) %>%
 
 # final -------------------------------------------------------------------
 
-projections_df <- bind_rows(pros_props, sharks_props, nfl_fantasy, guys) %>%
+projections_df <- bind_rows(pros_props, lineupexperts, nfl_fantasy, guys) %>%
   inner_join(., book_props %>% select(c(player, play, game_id, week, commence_time, game_time, away_team, home_team)), by = c("player", "play"), relationship = "many-to-many") %>%
   select(c(commence_time, week, game_time, game_id, away_team, home_team, team, player, play, site, point))
 
