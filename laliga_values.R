@@ -165,7 +165,7 @@ filtered_df_list_liga <- lapply(df_list_liga, function(df) {
 })
 
 # Remove NULL entries and bind rows
-filtered_df_list_liga <- do.call(rbind, Filter(Negate(is.null), filtered_df_list_liga))
+filtered_df_list_liga <- do.call(bind_rows, Filter(Negate(is.null), filtered_df_list_liga))
 
 
 dratings_liga1 <- filtered_df_list_liga %>%

@@ -166,7 +166,7 @@ filtered_df_list_bund <- lapply(df_list_bund, function(df) {
 })
 
 # Remove NULL entries and bind rows
-filtered_df_list_bund <- do.call(rbind, Filter(Negate(is.null), filtered_df_list_bund))
+filtered_df_list_bund <- do.call(bind_rows, Filter(Negate(is.null), filtered_df_list_bund))
 
 
 dratings_bund1 <- filtered_df_list_bund %>%
