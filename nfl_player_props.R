@@ -423,6 +423,7 @@ pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
 #shark_segment <- nfl_week_int + 818
 
 
+
 #sharks_qb_raw <- html_table(read_html(paste0("https://www.fantasysharks.com/apps/bert/forecasts/projections.php?&Sort=&Segment=", shark_segment, "&Position=1&scoring=2&League=&uid=4&uid2=&printable=")))[[4]]
 #sharks_qb <- sharks_qb_raw %>%
 #  clean_names() %>%
@@ -803,7 +804,7 @@ props_df2 <- left_join(
   by = join_by(play, player, game_id), suffix = c("_proj", "_book"), relationship = "many-to-many") %>%
   filter(!is.na(commence_time), !is.na(odds)) %>%
   distinct() %>%
-  filter(play != "to_score") %>%
+#  filter(play != "to_score") %>%
   mutate(filter1 = case_when(point_proj > point_book & outcome == "over" ~ 1,
                              point_proj < point_book & outcome == "under" ~ 1,
                              TRUE ~ 0),
@@ -852,7 +853,8 @@ props_df2 <- left_join(
                                     TRUE ~ 0))
 
 props_gt <- props_df2 %>%
-  filter(avg_value_diff == 1) %>%
+  filter(avg_value_diff == 1,
+         play != "to_score") %>%
   mutate(game_id = gsub("-", "vs", game_id),
          agreement_dk = paste0(overs_dk + unders_dk, "/", sites),
          agreement_fd = paste0(overs_fd + unders_fd, "/", sites)) %>%
