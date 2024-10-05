@@ -276,45 +276,58 @@ pros_qb <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/p
   select(-c(playerteam)) %>%
   select(player, team, everything())
 
-pros_rb <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/rb.php"))[1]) %>%
-  rename("playerteam" = "X1", "ruat" = "X2", "ruyd" = "X3", "rutd" = "X4", "rec" = "X5", "reyd" = "X6", "retd" = "X7") %>%
-  select(-c("X8", "X9")) %>%
-  slice(-1) %>%
-  slice(-1) %>%
-  mutate(player = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 1],
-         team = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 2],
-         rec = as.numeric(rec),
-         reyd = round(as.numeric(reyd), 0),
-         retd = as.numeric(retd),
-         ruat = as.numeric(ruat),
-         ruyd = round(as.numeric(ruyd), 0),
-         rutd = as.numeric(rutd)) %>%
-  select(-c(playerteam)) %>%
-  select(player, team, everything()) %>%
-  mutate(player = case_when(player == "Travis Etienne Jr." ~ "Travis Etienne",
-                            player == "Kenneth Walker III" ~ "Kenneth Walker",
-                            TRUE ~ player))
+#pros_rb <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/rb.php"))[1]) %>%
+#  rename("playerteam" = "X1", "ruat" = "X2", "ruyd" = "X3", "rutd" = "X4", "rec" = "X5", "reyd" = "X6", "retd" = "X7") %>%
+#  select(-c("X8", "X9")) %>%
+#  slice(-1) %>%
+#  slice(-1) %>%
+#  mutate(player = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 1],
+#         team = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 2],
+#         rec = as.numeric(rec),
+#         reyd = round(as.numeric(reyd), 0),
+#         retd = as.numeric(retd),
+#         ruat = as.numeric(ruat),
+#         ruyd = round(as.numeric(ruyd), 0),
+#         rutd = as.numeric(rutd)) %>%
+#  select(-c(playerteam)) %>%
+#  select(player, team, everything()) %>%
+#  mutate(player = case_when(player == "Travis Etienne Jr." ~ "Travis Etienne",
+#                            player == "Kenneth Walker III" ~ "Kenneth Walker",
+#                            TRUE ~ player))
 
-pros_wr <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/wr.php"))[1]) %>%
-  rename("playerteam" = "X1", "rec" = "X2", "reyd" = "X3", "retd" = "X4", "ruat" = "X5", "ruyd" = "X6", "rutd" = "X7") %>%
-  select(-c("X8", "X9")) %>%
-  slice(-1) %>%
-  slice(-1) %>%
-  mutate(player = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 1],
-         team = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 2],
-         reyd = round(as.numeric(reyd), 0),
-         retd = as.numeric(retd),
-         ruat = as.numeric(ruat),
-         ruyd = round(as.numeric(ruyd), 0),
-         rutd = as.numeric(rutd),
-         rec = as.numeric(rec)) %>%
-  select(-c(playerteam)) %>%
-  select(player, team, everything()) %>%
-  mutate(player = case_when(player == "A.J. Brown" ~ "AJ Brown",
-                            player == "Allen Robinson III" ~ "Allen Robinson",
-                            TRUE ~ player))
+#pros_wr <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/wr.php"))[1]) %>%
+#  rename("playerteam" = "X1", "rec" = "X2", "reyd" = "X3", "retd" = "X4", "ruat" = "X5", "ruyd" = "X6", "rutd" = "X7") %>%
+#  select(-c("X8", "X9")) %>%
+#  slice(-1) %>%
+#  slice(-1) %>%
+#  mutate(player = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 1],
+#         team = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 2],
+#         reyd = round(as.numeric(reyd), 0),
+#         retd = as.numeric(retd),
+#         ruat = as.numeric(ruat),
+#         ruyd = round(as.numeric(ruyd), 0),
+#         rutd = as.numeric(rutd),
+#         rec = as.numeric(rec)) %>%
+#  select(-c(playerteam)) %>%
+#  select(player, team, everything()) %>%
+#  mutate(player = case_when(player == "A.J. Brown" ~ "AJ Brown",
+#                            player == "Allen Robinson III" ~ "Allen Robinson",
+#                            TRUE ~ player))
 
-pros_te <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/te.php"))[1]) %>%
+#pros_te <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/te.php"))[1]) %>%
+#  rename("playerteam" = "X1", "rec" = "X2", "reyd" = "X3", "retd" = "X4") %>%
+#  select(-c("X5", "X6")) %>%
+#  slice(-1) %>%
+#  slice(-1) %>%
+#  mutate(player = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 1],
+#         team = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 2],
+#         reyd = round(as.numeric(reyd), 0),
+#         rec = as.numeric(rec),
+#         retd = as.numeric(retd)) %>%
+#  select(-c(playerteam)) %>%
+#  select(player, team, everything())
+
+pros_flex <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/flex.php"))[1]) %>%
   rename("playerteam" = "X1", "rec" = "X2", "reyd" = "X3", "retd" = "X4") %>%
   select(-c("X5", "X6")) %>%
   slice(-1) %>%
@@ -327,7 +340,7 @@ pros_te <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/p
   select(-c(playerteam)) %>%
   select(player, team, everything())
 
-pros_props <- bind_rows(pros_qb, pros_rb, pros_wr, pros_te) %>%
+pros_props <- bind_rows(pros_qb, pros_flex) %>%
   mutate(player = case_when(player == "A.J. Brown" ~ "AJ Brown",
                             player == "Allen Robinson III" ~ "Allen Robinson",
                             player == "Travis Etienne Jr." ~ "Travis Etienne",
