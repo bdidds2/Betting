@@ -328,15 +328,18 @@ pros_qb <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/p
 #  select(player, team, everything())
 
 pros_flex <- as.data.frame(html_table(read_html("https://www.fantasypros.com/nfl/projections/flex.php"))[1]) %>%
-  rename("playerteam" = "X1", "rec" = "X2", "reyd" = "X3", "retd" = "X4") %>%
-  select(-c("X5", "X6")) %>%
+  rename("playerteam" = "X1", "ruat" = "X3", "ruyd" = "X4", "rutd" = "X5", "rec" = "X6", "reyd" = "X7", "retd" = "X8") %>%
+  select(-c("X2", "X9", "X10")) %>%
   slice(-1) %>%
   slice(-1) %>%
   mutate(player = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 1],
          team = str_split(playerteam, " (?=[^ ]*$)", simplify = TRUE)[, 2],
          reyd = round(as.numeric(reyd), 0),
          rec = as.numeric(rec),
-         retd = as.numeric(retd)) %>%
+         retd = as.numeric(retd),
+         ruat = as.numeric(ruat),
+         ruyd = as.numeric(ruyd),
+         rutd = as.numeric(rutd)) %>%
   select(-c(playerteam)) %>%
   select(player, team, everything())
 
