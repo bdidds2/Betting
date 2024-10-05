@@ -852,6 +852,7 @@ props_df2 <- left_join(
                                     grepl("yd", play) & avg_line >= 24 & avg_diff_percent > .25 ~ 1,
                                     TRUE ~ 0))
 
+
 props_gt <- props_df2 %>%
   filter(avg_value_diff == 1,
          play != "to_score") %>%
