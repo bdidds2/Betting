@@ -25,7 +25,7 @@ team_table <- read_html(teams_url) %>%
   html_nodes("table.wikitable") %>%
   html_table() %>% 
   .[[2]] %>%
-  select("full_name" = "Club[63]") %>%
+  select("full_name" = "Team[54]") %>%
   filter(full_name != "American Football Conference", full_name != "National Football Conference", !grepl("relocated", full_name)) %>%
   mutate(full_name = gsub("[^a-zA-Z0-9 ]", "", full_name)) %>%
   separate(full_name, c("location","name"),sep="\\s+(?=\\S*$)") %>%
