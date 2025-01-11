@@ -2,21 +2,21 @@ on:
 #  push:
 #    branches: main
 
-  schedule:
-    - cron: '0 14 * * 2'
-    - cron: '0 14 * * 3'
-    - cron: '0 18 * * 3'
-    - cron: '0 14 * * 4'
-    - cron: '0 17 * * 4'
-    - cron: '0 10 * * 5'
-    - cron: '0 12 * * 5'
-    - cron: '0 20 * * 5'
-    - cron: '0 10 * * 6'
-    - cron: '0 20 * * 6'
-    - cron: '0 10 * * 0'
-    - cron: '45 8 * * 3'
-    - cron: '10 16 * * 4'
-    - cron: '0 10 * * 1'
+ # schedule:
+#    - cron: '0 14 * * 2'
+#    - cron: '0 14 * * 3'
+#    - cron: '0 18 * * 3'
+#    - cron: '0 14 * * 4'
+#    - cron: '0 17 * * 4'
+#    - cron: '0 10 * * 5'
+#    - cron: '0 12 * * 5'
+#    - cron: '0 20 * * 5'
+#    - cron: '0 10 * * 6'
+#    - cron: '0 20 * * 6'
+#    - cron: '0 10 * * 0'
+#    - cron: '45 8 * * 3'
+#    - cron: '10 16 * * 4'
+#    - cron: '0 10 * * 1'
 
 jobs:
   import-data:

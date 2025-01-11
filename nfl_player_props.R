@@ -84,7 +84,7 @@ headshots <- load_rosters(2024) %>%
 # api setup ---------------------------------------------------------------
 
 
-api <- "935bb399373baa6304a140c7a6cee4fc"
+#api <- "935bb399373baa6304a140c7a6cee4fc"
 base <- "https://api.the-odds-api.com"
 sport <- "americanfootball_nfl"
 markets <- "h2h"
