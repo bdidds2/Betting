@@ -297,85 +297,85 @@ sl <- sportsline_raw %>%
 # numberfire projections ------------------------------------------------
 
 
-numberfire_hitters_raw <- as.data.frame(html_table(read_html("https://www.numberfire.com/mlb/daily-fantasy/daily-baseball-projections/batters"))[4])
+#numberfire_hitters_raw <- as.data.frame(html_table(read_html("https://www.fanduel.com/research/mlb/fantasy/dfs-projections/batters"))[4])
 
-names(numberfire_hitters_raw) <- as.matrix(numberfire_hitters_raw)[1, ]
-numberfire_hitters_raw <- numberfire_hitters_raw[-1, ]
+#names(numberfire_hitters_raw) <- as.matrix(numberfire_hitters_raw)[1, ]
+#numberfire_hitters_raw <- numberfire_hitters_raw[-1, ]
 
-numberfire_hitters <- numberfire_hitters_raw |>
-  clean_names() |>
-  mutate(player = gsub("Jr\\.", "", player),
-         player = gsub("\n", "", player),
-         player = str_trim(player),
-         player = str_replace_all(player, "(?<=\\s)\\s+(?=\\s)", " - "),
-         name = trimws(str_extract(player, "^[^-]*")),
-         name2 = trimws(str_match(player, "-(.*?) - ")[, 2])) |>
-  rowwise() |>
-  mutate(walks = as.double(bb),
-         hrs = as.double(hr),
-         tb = as.double(x1b) + 2 * as.double(x2b) + 3 * as.double(x3b) + 4 * hrs,
-         rs = as.double(r),
-         rbis = as.double(ifelse(is.na(rbi), 0, rbi)),
-         sos = as.double(k),
-         sbs = as.double(sb),
-         hits = hrs + as.double(x1b) + as.double(x2b) + as.double(x3b),
-         h_r_rbi = hits + hrs + rbis) |>
-  select(-c(player, fp, salary, value, pa, bb, x1b, x2b, x3b, hr, r, rbi, sb, k, avg)) %>%
-  mutate(name2 = case_when(name2 == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
-                            name2 == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
-                            name2 == "Bennedict Mathurin" ~ "Benedict Mathurin",
-                            name2 == "Andre Jackson" ~ "Andre Jackson Jr",
-                            name2 == "A.J. Green" ~ "AJ Green",
-                            name2 == "Nick Smith" ~ "Nick Smith Jr",
-                             TRUE ~ name2)) %>%
+#numberfire_hitters <- numberfire_hitters_raw |>
+#  clean_names() |>
+#  mutate(player = gsub("Jr\\.", "", player),
+#         player = gsub("\n", "", player),
+#         player = str_trim(player),
+#         player = str_replace_all(player, "(?<=\\s)\\s+(?=\\s)", " - "),
+#         name = trimws(str_extract(player, "^[^-]*")),
+#         name2 = trimws(str_match(player, "-(.*?) - ")[, 2])) |>
+#  rowwise() |>
+#  mutate(walks = as.double(bb),
+#         hrs = as.double(hr),
+#         tb = as.double(x1b) + 2 * as.double(x2b) + 3 * as.double(x3b) + 4 * hrs,
+#         rs = as.double(r),
+#         rbis = as.double(ifelse(is.na(rbi), 0, rbi)),
+#         sos = as.double(k),
+#         sbs = as.double(sb),
+#         hits = hrs + as.double(x1b) + as.double(x2b) + as.double(x3b),
+#         h_r_rbi = hits + hrs + rbis) |>
+#  select(-c(player, fp, salary, value, pa, bb, x1b, x2b, x3b, hr, r, rbi, sb, k, avg)) %>%
+#  mutate(name2 = case_when(name2 == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
+#                            name2 == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
+#                            name2 == "Bennedict Mathurin" ~ "Benedict Mathurin",
+#                            name2 == "Andre Jackson" ~ "Andre Jackson Jr",
+#                            name2 == "A.J. Green" ~ "AJ Green",
+#                            name2 == "Nick Smith" ~ "Nick Smith Jr",
+#                             TRUE ~ name2)) %>%
   #left_join(., sl %>% select(c(player, team, game, home, away)), by = "player") %>%
   #filter(min > 0) %>%
-  mutate(site = "nf",
-         type = "proj") %>%
-  ungroup() %>%
-  pivot_longer(cols = c(walks, hrs, tb, rs, rbis, sos, sbs, h_r_rbi), 
-               names_to = "play", values_to = "proj")
+#  mutate(site = "nf",
+#         type = "proj") %>%
+#  ungroup() %>%
+#  pivot_longer(cols = c(walks, hrs, tb, rs, rbis, sos, sbs, h_r_rbi), 
+#               names_to = "play", values_to = "proj")
   
 
 
 ##
 
-numberfire_pitchers_raw <- as.data.frame(html_table(read_html("https://www.numberfire.com/mlb/daily-fantasy/daily-baseball-projections/pitchers"))[4])
+#numberfire_pitchers_raw <- as.data.frame(html_table(read_html("https://www.numberfire.com/mlb/daily-fantasy/daily-baseball-projections/pitchers"))[4])
 
-names(numberfire_pitchers_raw) <- as.matrix(numberfire_pitchers_raw)[1, ]
-numberfire_pitchers_raw <- numberfire_pitchers_raw[-1, ]
+#names(numberfire_pitchers_raw) <- as.matrix(numberfire_pitchers_raw)[1, ]
+#numberfire_pitchers_raw <- numberfire_pitchers_raw[-1, ]
 
-numberfire_pitchers <- numberfire_pitchers_raw |>
-  clean_names() |>
-  mutate(player = gsub("Jr\\.", "", player),
-         player = gsub("\n", "", player),
-         player = str_trim(player),
-         player = str_replace_all(player, "(?<=\\s)\\s+(?=\\s)", " - "),
-         name = trimws(str_extract(player, "^[^-]*")),
-         name2 = trimws(str_match(player, "-(.*?) - ")[, 2])) |>
-  rowwise() |>
-  mutate(ers = as.double(er),
-         hits_a = as.double(h),
-         outs = as.double(ip)*3,
-         win = as.double(substr(w_l, 1, 4)),
-         ks = as.double(k),
-         bb = as.double(bb)) |>
-  select(c(name, name2, ers, hits_a, outs, win, ks, bb)) %>%
-  mutate(name2 = case_when(name2 == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
-                           name2 == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
-                           name2 == "Bennedict Mathurin" ~ "Benedict Mathurin",
-                           name2 == "Andre Jackson" ~ "Andre Jackson Jr",
-                           name2 == "A.J. Green" ~ "AJ Green",
-                           name2 == "Nick Smith" ~ "Nick Smith Jr",
-                           TRUE ~ name2)) %>%
+#numberfire_pitchers <- numberfire_pitchers_raw |>
+#  clean_names() |>
+#  mutate(player = gsub("Jr\\.", "", player),
+#         player = gsub("\n", "", player),
+#         player = str_trim(player),
+#         player = str_replace_all(player, "(?<=\\s)\\s+(?=\\s)", " - "),
+#         name = trimws(str_extract(player, "^[^-]*")),
+#         name2 = trimws(str_match(player, "-(.*?) - ")[, 2])) |>
+#  rowwise() |>
+#  mutate(ers = as.double(er),
+#         hits_a = as.double(h),
+#         outs = as.double(ip)*3,
+#         win = as.double(substr(w_l, 1, 4)),
+#         ks = as.double(k),
+#         bb = as.double(bb)) |>
+#  select(c(name, name2, ers, hits_a, outs, win, ks, bb)) %>%
+#  mutate(name2 = case_when(name2 == "Shai Gilgeous" ~ "Shai Gilgeous-Alexander",
+#                           name2 == "Jaime Jaquez" ~ "Jaime Jaquez Jr",
+#                           name2 == "Bennedict Mathurin" ~ "Benedict Mathurin",
+#                           name2 == "Andre Jackson" ~ "Andre Jackson Jr",
+#                           name2 == "A.J. Green" ~ "AJ Green",
+#                           name2 == "Nick Smith" ~ "Nick Smith Jr",
+#                           TRUE ~ name2)) %>%
   #left_join(., sl %>% select(c(player, team, game, home, away)), by = "player") %>%
   #filter(min > 0) %>%
-  mutate(site = "nf",
-         type = "proj") %>%
-  ungroup() %>%
-  pivot_longer(cols = c(ers, hits_a, outs, win, ks, bb), names_to = "play", values_to = "proj")
+#  mutate(site = "nf",
+#         type = "proj") %>%
+#  ungroup() %>%
+#  pivot_longer(cols = c(ers, hits_a, outs, win, ks, bb), names_to = "play", values_to = "proj")
 
-nf <- bind_rows(numberfire_hitters, numberfire_pitchers)
+#nf <- bind_rows(numberfire_hitters, numberfire_pitchers)
 
 
 
@@ -469,19 +469,19 @@ sl2 <- sl %>%
   filter(!is.na(player)) %>%
   mutate(id = paste0(team, "_", player))
 
-nf2 <- nf %>%
-  rename("player" = "name") %>%
-  mutate(player = case_when(player == "F. Tatis" ~ "F. Tatis Jr.",
-                            TRUE ~ player)) %>%
-  left_join(., bp2 %>% select(c(player, team)) %>% distinct(), by = "player") %>%
-  mutate(id = paste0(team, "_", player))
+#nf2 <- nf %>%
+#  rename("player" = "name") %>%
+#  mutate(player = case_when(player == "F. Tatis" ~ "F. Tatis Jr.",
+#                            TRUE ~ player)) %>%
+#  left_join(., bp2 %>% select(c(player, team)) %>% distinct(), by = "player") %>%
+#  mutate(id = paste0(team, "_", player))
 
 le2 <- bind_rows(lineupexperts_hitters, lineupexperts_pitchers) %>%
   mutate(name = str_replace(player, "(?<=^.).+?\\s", ". ")) %>%
   rename("player2" = "player",
          "player" = "name")
 
-projections <- bind_rows(sl2, bp2, nf2, le2) %>%
+projections <- bind_rows(sl2, bp2, le2) %>%
   filter(!is.na(team), player != "") %>%
   group_by(player, id, team, play) %>%
   summarize(mean = mean(proj),

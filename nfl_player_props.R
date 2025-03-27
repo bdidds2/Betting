@@ -25,7 +25,7 @@ team_table <- read_html(teams_url) %>%
   html_nodes("table.wikitable") %>%
   html_table() %>% 
   .[[2]] %>%
-  select("full_name" = "Team[54]") %>%
+  select("full_name" = "Team[55]") %>%
   filter(full_name != "American Football Conference", full_name != "National Football Conference", !grepl("relocated", full_name)) %>%
   mutate(full_name = gsub("[^a-zA-Z0-9 ]", "", full_name)) %>%
   separate(full_name, c("location","name"),sep="\\s+(?=\\S*$)") %>%
@@ -648,7 +648,7 @@ nfl_fantasy <- nfl_fantasy_transform1 %>%
          type = "projection")
 
 # football guys --------------------------------------------------------------
-
+#nfl_week_int <- 22
 guys_raw <- paste0("https://www.footballguys.com/projections/download?year=2024&week=", nfl_week_int, "&dur=weekly&group=all&projectorid=-1&nflteamid=all") %>%
   read.csv() %>%
   clean_names()
@@ -746,7 +746,9 @@ stats_trend <- bind_rows(stats_passing, stats_rushing, stats_receiving) %>%
 
 # final -------------------------------------------------------------------
 
-projections_df <- bind_rows(pros_props, lineupexperts, nfl_fantasy, guys) %>%
+projections_df <- bind_rows(pros_props, 
+                            #lineupexperts, nfl_fantasy, 
+                            guys) %>%
   inner_join(., book_props %>% select(c(player, play, game_id, week, commence_time, game_time, away_team, home_team)), by = c("player", "play"), relationship = "many-to-many") %>%
   select(c(commence_time, week, game_time, game_id, away_team, home_team, team, player, play, site, point))
 
