@@ -42,6 +42,9 @@ jobs:
         
       - name: Import data four  
         run: Rscript ottoneu_data.R
+        
+      - name: Import data five
+        run: Rscript fantasy_baseball_projections2.R
 
       - name: Commit results
         run: |
@@ -56,5 +59,7 @@ jobs:
           git add ottoneu/dani_rojas_pitchers.csv
           git add ottoneu/all_hitters.csv
           git add ottoneu/all_pitchers.csv
+          git add ottoneu/hitter_projections_ros.csv
+          git add ottoneu/pitcher_projections_ros.csv
           git commit -m 'Data updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
